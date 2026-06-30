@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Pools Maintenance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Card Flip Styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .preserve-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg) !important;
+        }
+        /* Skip transition animations cleanly */
+        .no-transition {
+            transition: none !important;
+        }
+        /* Hide scrollbars elegantly */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans relative">
+
+    <!-- Header (No Title / Branding - Full Horizontal Alignment) -->
+    <header class="bg-slate-800 border-b border-slate-700 py-3.5 px-6 shadow-md select-none">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Global Controllers & Selector Triggers (Perfect row left side) -->
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+                <!-- Manual Date Override Controller -->
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-750 h-9">
+                    <label for="system-date-picker" class="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-400 font-bold"></i> Date:
+                    </label>
+                    <input type="date" id="system-date-picker" onchange="updateStudyDate(this.value)" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-mono" />
+                </div>
+
+                <!-- Themes Selection Modal Trigger -->
+                <button onclick="openThemesModal()" class="flex items-center gap-1.5 px-4 py-1.5 bg-slate-750 hover:bg-slate-700 border border-slate-650 rounded-xl text-xs font-semibold text-slate-200 shadow-sm transition h-9">
+                    <i data-lucide="tags" class="w-4 h-4 text-emerald-400"></i>
+                    Themes Selector
+                </button>
+
+                <!-- Global Stats Overview Trigger with External Counter -->
+                <div class="flex items-center gap-2">
+                    <button onclick="openOverviewModal()" class="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-650 hover:bg-indigo-600 border border-indigo-500 rounded-xl text-xs font-semibold text-white shadow-sm transition h-9">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-200"></i>
+                        Stats Overview
+                    </button>
+                    <div class="bg-slate-900 border border-slate-750 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 h-9 flex items-center font-mono" title="Total Active Flashcards (excluding retired)">
+                        Total FCs: <span id="header-total-fcs" class="text-indigo-400 ml-1 font-bold">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Switcher (Perfect row right side) -->
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700/60 max-w-full overflow-x-auto no-scrollbar h-9 items-center">
+                <button id="tab-data-btn" onclick="switchTab('data')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-sm whitespace-nowrap">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    Database Text
+                </button>
+                <button id="tab-study-btn" onclick="switchTab('study')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+                    Study Cards
+                </button>
+                <button id="tab-retired-btn" onclick="switchTab('retired')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                    <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+                    Retired Items
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ACTIVE THEMES SELECTOR MODAL (NO OPEN ANIMATION) -->
+    <div id="themes-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 flex flex-col gap-5">
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400">
+                    <i data-lucide="tags" class="w-5 h-5"></i>
+                    <h3 class="text-lg font-bold text-white">Select Themes to Display</h3>
+                </div>
+                <button onclick="closeThemesModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-normal -mt-2">
+                Unchecked themes will be completely hidden from the statistics cards, active study pools, and retired item lists.
+            </p>
+
+            <div id="themes-checklist-container" class="flex flex-col gap-2 max-h-60 overflow-y-auto bg-slate-900/60 border border-slate-750 p-3 rounded-xl font-sans">
+                <!-- Filled dynamically by JavaScript -->
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="toggleAllThemes(true)" class="flex-1 bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2 rounded-xl text-xs transition">
+                    Select All
+                </button>
+                <button onclick="toggleAllThemes(false)" class="flex-1 bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2 rounded-xl text-xs transition">
+                    Clear All
+                </button>
+            </div>
+
+            <button onclick="applyThemeSelections()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="check" class="w-4 h-4"></i> Apply Filters
+            </button>
+        </div>
+    </div>
+
+    <!-- OVERVIEW MODAL WINDOW (NO OPEN ANIMATION) -->
+    <div id="overview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm select-none">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 flex flex-col gap-5 max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-2.5 text-indigo-400">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        Database Stats Overview
+                        <span class="text-xs bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg text-indigo-300 font-mono font-normal">
+                            Total Active FCs: <span id="stat-total-fcs">0</span>
+                        </span>
+                    </h3>
+                </div>
+                <button onclick="closeOverviewModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-normal -mt-2">
+                Click box parameters below to multi-select filters. You can preview matched text codes or study custom selections immediately.
+            </p>
+
+            <!-- Rating Counters -->
+            <div class="flex flex-col gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Rating Counter Breakdown (Select to filter)</span>
+                <div class="grid grid-cols-5 gap-2 text-center text-xs font-mono">
+                    <div id="filter-score-1" onclick="toggleStatFilter('score', 1)" class="cursor-pointer bg-rose-900/40 hover:bg-rose-900/60 border border-rose-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-rose-400 text-lg" id="stat-score-1">0</div>
+                        <div class="text-[9px] text-rose-500 font-semibold uppercase mt-0.5">Forgot (1)</div>
+                    </div>
+                    <div id="filter-score-2" onclick="toggleStatFilter('score', 2)" class="cursor-pointer bg-orange-900/40 hover:bg-orange-900/60 border border-orange-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-orange-400 text-lg" id="stat-score-2">0</div>
+                        <div class="text-[9px] text-orange-500 font-semibold uppercase mt-0.5">Hard (2)</div>
+                    </div>
+                    <div id="filter-score-3" onclick="toggleStatFilter('score', 3)" class="cursor-pointer bg-amber-900/30 hover:bg-amber-900/50 border border-amber-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-amber-300 text-lg" id="stat-score-3">0</div>
+                        <div class="text-[9px] text-amber-400 font-semibold uppercase mt-0.5">Med (3)</div>
+                    </div>
+                    <div id="filter-score-4" onclick="toggleStatFilter('score', 4)" class="cursor-pointer bg-yellow-900/20 hover:bg-yellow-900/40 border border-yellow-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-yellow-400 text-lg" id="stat-score-4">0</div>
+                        <div class="text-[9px] text-yellow-500 font-semibold uppercase mt-0.5">Good (4)</div>
+                    </div>
+                    <div id="filter-score-5" onclick="toggleStatFilter('score', 5)" class="cursor-pointer bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-emerald-400 text-lg" id="stat-score-5">0</div>
+                        <div class="text-[9px] text-emerald-500 font-semibold uppercase mt-0.5">Mast (5)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mastered (5) Repetition Breakdown -->
+            <div class="flex flex-col gap-2 -mt-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Mastered (5) Repetitions Breakdown (Select to filter)</span>
+                <div class="grid grid-cols-5 gap-2 text-center text-xs font-mono">
+                    <div id="filter-rep-1" onclick="toggleStatFilter('rep', 1)" class="cursor-pointer bg-rose-900/40 hover:bg-rose-900/60 border border-rose-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-rose-400 text-lg" id="stat-rep-1">0</div>
+                        <div class="text-[9px] text-rose-500 font-semibold uppercase mt-0.5">Once (1)</div>
+                    </div>
+                    <div id="filter-rep-2" onclick="toggleStatFilter('rep', 2)" class="cursor-pointer bg-orange-900/40 hover:bg-orange-900/60 border border-orange-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-orange-400 text-lg" id="stat-rep-2">0</div>
+                        <div class="text-[9px] text-orange-500 font-semibold uppercase mt-0.5">Twice (2)</div>
+                    </div>
+                    <div id="filter-rep-3" onclick="toggleStatFilter('rep', 3)" class="cursor-pointer bg-amber-900/30 hover:bg-amber-900/50 border border-amber-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-amber-300 text-lg" id="stat-rep-3">0</div>
+                        <div class="text-[9px] text-amber-400 font-semibold uppercase mt-0.5">Thrice (3)</div>
+                    </div>
+                    <div id="filter-rep-4" onclick="toggleStatFilter('rep', 4)" class="cursor-pointer bg-yellow-900/20 hover:bg-yellow-900/40 border border-yellow-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-yellow-400 text-lg" id="stat-rep-4">0</div>
+                        <div class="text-[9px] text-yellow-500 font-semibold uppercase mt-0.5">Four (4)</div>
+                    </div>
+                    <div id="filter-rep-5" onclick="toggleStatFilter('rep', 5)" class="cursor-pointer bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-900/40 p-2 rounded-xl transition duration-150 select-none">
+                        <div class="font-extrabold text-emerald-400 text-lg" id="stat-rep-5">0</div>
+                        <div class="text-[9px] text-emerald-500 font-semibold uppercase mt-0.5">Five+ (5+)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Studied Recency metrics -->
+            <div class="flex flex-col gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Recency Metrics (Select to filter)</span>
+                <div class="flex flex-col gap-2 text-xs font-mono">
+                    <div id="filter-recency-today" onclick="toggleStatFilter('recency', 'today')" class="cursor-pointer flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 px-3 py-2 rounded-xl border border-slate-750 transition duration-150 select-none">
+                        <div class="flex items-center gap-2 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 font-sans"></span> Studied Today
+                        </div>
+                        <span class="font-bold text-slate-200" id="stat-recency-today">0</span>
+                    </div>
+                    <div id="filter-recency-week" onclick="toggleStatFilter('recency', 'week')" class="cursor-pointer flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 px-3 py-2 rounded-xl border border-slate-750 transition duration-150 select-none">
+                        <div class="flex items-center gap-2 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 font-sans"></span> Last Week (1-7 days ago)
+                        </div>
+                        <span class="font-bold text-slate-200" id="stat-recency-week">0</span>
+                    </div>
+                    <div id="filter-recency-month" onclick="toggleStatFilter('recency', 'month')" class="cursor-pointer flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 px-3 py-2 rounded-xl border border-slate-750 transition duration-150 select-none">
+                        <div class="flex items-center gap-2 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 font-sans"></span> Last Month (8-30 days ago)
+                        </div>
+                        <span class="font-bold text-slate-200" id="stat-recency-month">0</span>
+                    </div>
+                    <div id="filter-recency-older" onclick="toggleStatFilter('recency', 'older')" class="cursor-pointer flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 px-3 py-2 rounded-xl border border-slate-750 transition duration-150 select-none">
+                        <div class="flex items-center gap-2 font-medium">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-500 font-sans"></span> Over a Month Ago / Never
+                        </div>
+                        <span class="font-bold text-slate-200" id="stat-recency-older">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pool Limit Box -->
+            <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-750">
+                <div class="flex flex-col text-left">
+                    <span class="text-xs font-semibold text-slate-200 font-sans">Limit Filter Pool Size</span>
+                    <span class="text-[10px] text-slate-405 font-mono font-normal">Caps total generated cards in custom set</span>
+                </div>
+                <input type="number" id="stats-pool-limit" placeholder="No limit" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 w-24 text-center font-mono h-8" min="1" />
+            </div>
+
+            <!-- Relocated Pin Filter Box inside Overview modal -->
+            <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-750">
+                <div class="flex flex-col text-left">
+                    <span class="text-xs font-semibold text-slate-200 font-sans">Pin Filter Options</span>
+                    <span class="text-[10px] text-slate-400 font-mono font-normal">Filter study selection by pin status</span>
+                </div>
+                <div class="flex items-center gap-1.5 h-8 bg-slate-900 px-2 rounded-lg border border-slate-700">
+                    <input type="checkbox" id="pin-filter-enabled" onchange="togglePinFilterEnable(this.checked)" class="rounded bg-slate-900 border-slate-750 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer" />
+                    <button id="pin-filter-toggle-btn" onclick="togglePinFilterMode()" disabled class="text-[10px] font-semibold px-2 py-0.5 bg-slate-800 hover:bg-slate-750 text-slate-400 rounded transition disabled:opacity-50 font-sans">
+                        Only Pinned FCs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interaction Buttons for Selected Stats -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="studySelectedStats()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-md font-sans">
+                    <i data-lucide="play" class="w-4 h-4"></i> Study Selected
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-pin-selected" onclick="pinSelectedStats()" class="bg-amber-600 hover:bg-amber-550 text-white font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow-md font-sans" title="Pin matched selection in selected themes">
+                        <i data-lucide="pin" class="w-3.5 h-3.5 text-amber-200 font-bold"></i> Pin Selected
+                    </button>
+                    <button onclick="viewSelectedStatsText()" class="bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 font-sans">
+                        <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-300"></i> View Code
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeOverviewModal()" class="w-full bg-slate-750 hover:bg-slate-700 text-slate-300 font-semibold py-2 rounded-xl text-xs transition font-sans">
+                Close Overview
+            </button>
+        </div>
+    </div>
+
+    <!-- PREVIEW FILTERED CODE MODAL (NO OPEN ANIMATION) -->
+    <div id="preview-filtered-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-4xl lg:max-w-5xl rounded-2xl shadow-2xl p-6 flex flex-col gap-4 max-h-[95vh]">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400">
+                    <i data-lucide="eye" class="w-5 h-5"></i>
+                    <h3 class="text-base font-bold text-white font-sans">Preview Selected Stats Code</h3>
+                </div>
+                <button onclick="closePreviewFilteredModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Mini Sub-Breakdown Metrics Grid inside view selection modal -->
+            <div class="bg-slate-900 border border-slate-750 p-3 rounded-xl flex flex-col gap-2 select-none">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 font-mono">Selected Sub-Breakdown Metrics</span>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-[11px] text-slate-300">
+                    <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex flex-col justify-center">
+                        <span class="text-slate-400 font-semibold text-xs text-left font-sans">Score Totals:</span>
+                        <div class="flex flex-wrap gap-1 mt-1 font-mono text-[10px]">
+                            <span class="text-rose-400 bg-rose-900/40 px-1 rounded">1:<span id="mini-score-1">0</span></span>
+                            <span class="text-orange-400 bg-orange-900/40 px-1 rounded">2:<span id="mini-score-2">0</span></span>
+                            <span class="text-amber-300 bg-amber-900/30 px-1 rounded">3:<span id="mini-score-3">0</span></span>
+                            <span class="text-yellow-400 bg-yellow-900/20 px-1 rounded">4:<span id="mini-score-4">0</span></span>
+                            <span class="text-emerald-400 bg-emerald-900/40 px-1 rounded">5:<span id="mini-score-5">0</span></span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 col-span-1 md:col-span-3 flex flex-col justify-center">
+                        <span class="text-slate-400 font-semibold text-xs text-left font-sans">Recency breakdown:</span>
+                        <div class="grid grid-cols-4 gap-2 mt-1 font-mono text-[10px] text-center">
+                            <div class="bg-slate-900/60 p-1 rounded border border-slate-800">
+                                <span class="text-emerald-400 font-bold" id="mini-recency-today">0</span>
+                                <div class="text-[8px] text-slate-500 uppercase">Today</div>
+                            </div>
+                            <div class="bg-slate-900/60 p-1 rounded border border-slate-800">
+                                <span class="text-indigo-400 font-bold" id="mini-recency-week">0</span>
+                                <div class="text-[8px] text-slate-500 uppercase">Week</div>
+                            </div>
+                            <div class="bg-slate-900/60 p-1 rounded border border-slate-800">
+                                <span class="text-amber-400 font-bold" id="mini-recency-month">0</span>
+                                <div class="text-[8px] text-slate-500 uppercase">Month</div>
+                            </div>
+                            <div class="bg-slate-900/60 p-1 rounded border border-slate-800">
+                                <span class="text-slate-400 font-bold" id="mini-recency-older">0</span>
+                                <div class="text-[8px] text-slate-500 uppercase">Older</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <textarea id="preview-filtered-textarea" readonly class="w-full flex-grow p-4 bg-slate-900 text-slate-300 font-mono text-xs sm:text-sm rounded-xl border border-slate-750 focus:outline-none resize-none min-h-[420px] h-[450px] leading-relaxed" placeholder="Matches will appear here..."></textarea>
+            
+            <div class="flex gap-2">
+                <button id="btn-pin-all" onclick="pinAllPreviewed()" class="flex-1 bg-amber-600 hover:bg-amber-550 text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm font-sans">
+                    <i data-lucide="pin" class="w-4 h-4"></i> Pin All
+                </button>
+                <button onclick="copyPreviewFilteredText()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm font-sans">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copy Matched Code
+                </button>
+                <button onclick="closePreviewFilteredModal()" class="flex-1 bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition font-sans">
+                    Close Preview
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASTE FALLBACK MODAL (NO OPEN ANIMATION) -->
+    <div id="paste-fallback-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 flex flex-col gap-5">
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400 font-sans">
+                    <i data-lucide="clipboard-paste" class="w-5 h-5"></i>
+                    <h3 class="text-lg font-bold text-white">Paste Database Text</h3>
+                </div>
+                <button onclick="closePasteFallbackModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-normal -mt-2">
+                Browser security blocks direct clipboard access in sandbox iframes. Paste your text code below to overwrite the database:
+            </p>
+
+            <textarea id="paste-fallback-textarea" class="w-full h-48 p-3 bg-slate-900 text-slate-200 text-sm rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed" placeholder="Paste your database code here..."></textarea>
+
+            <div class="flex gap-2 font-sans">
+                <button onclick="submitPasteFallback()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                    Overwrite Database
+                </button>
+                <button onclick="closePasteFallbackModal()" class="w-full bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2.5 rounded-xl text-xs transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDY MODES DESCRIPTION MODAL (NO OPEN ANIMATION) -->
+    <div id="study-info-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm select-none">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                    <h3 class="text-base font-bold text-white font-sans">Study Modes Explained</h3>
+                </div>
+                <button onclick="closeStudyInfoModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="flex flex-col gap-3 text-xs sm:text-sm text-slate-300 max-h-[60vh] overflow-y-auto pr-1 text-left">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Words / Phrases Only:</strong>
+                    This is for studying words and phrases.
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Weakest Items:</strong>
+                    This is for a select pool of your weakest items (Score &amp; Time weighted).
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Infinite Worst:</strong>
+                    This has a select pool of your worst flashcards, but everything here stays in rotation UNTIL it is rated 5.
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Infinite Best:</strong>
+                    This is to find your best flashcards that can be rated (since it has to have been an hour since something was last rated 5 for the number in the parenthesis to go up). This is to help words / phrases go into retirement.
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Study Pinned FCs:</strong>
+                    This is to study FCs that you have pinned, for flashcards you would like to focus on.
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-750">
+                    <strong class="text-indigo-400 block mb-0.5 font-sans">Custom Stat Filter:</strong>
+                    This is when you select things in the stats overview tab, and click to study selected.
+                </div>
+            </div>
+
+            <button onclick="closeStudyInfoModal()" class="w-full bg-slate-750 hover:bg-slate-700 text-slate-300 font-semibold py-2 rounded-xl text-xs transition font-sans">
+                Close Info panel
+            </button>
+        </div>
+    </div>
+
+    <!-- EDIT CARD MODAL (NO OPEN ANIMATION) -->
+    <div id="edit-card-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 backdrop-blur-sm">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 flex flex-col gap-5">
+            <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-2 text-indigo-400 font-sans">
+                    <i data-lucide="edit" class="w-5 h-5"></i>
+                    <h3 class="text-lg font-bold text-white">Edit Flashcard</h3>
+                </div>
+                <button onclick="closeEditCardModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-4 text-left">
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-slate-400 font-sans">English Text</label>
+                    <input type="text" id="edit-card-english" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-sans" />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-slate-400 font-sans">Spanish Text</label>
+                    <input type="text" id="edit-card-spanish" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-sans" />
+                </div>
+            </div>
+
+            <div class="flex gap-2 font-sans">
+                <button onclick="saveEditedCard()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition">
+                    Save Changes
+                </button>
+                <button onclick="closeEditCardModal()" class="flex-1 bg-slate-700 hover:bg-slate-650 text-slate-200 font-semibold py-2 rounded-xl text-xs transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-start">
+        
+        <!-- Toast Notification Area -->
+        <div id="toast" class="hidden fixed top-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-emerald-500 transform translate-y-2 opacity-0 transition-all duration-300 select-none">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+            <span id="toast-message" class="text-sm font-medium">Synced successfully!</span>
+        </div>
+
+        <!-- TAB 1: DATA EDITOR -->
+        <section id="tab-data" class="flex flex-col flex-grow gap-4 h-[calc(100vh-140px)] min-h-[600px]">
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5 flex flex-col flex-grow shadow-lg h-full">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-3 mb-4">
+                    
+                    <!-- Left tools area including Navigation triggers -->
+                    <div class="flex items-center gap-2 w-full lg:w-auto relative select-none">
+                        <!-- Theme Navigator Popover trigger -->
+                        <div class="relative">
+                            <button onclick="toggleThemeNavDropdown()" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-900 hover:bg-indigo-800 border border-indigo-700 rounded-xl text-xs font-semibold text-indigo-300 shadow-sm transition h-9 font-sans">
+                                <i data-lucide="compass" class="w-4 h-4 text-indigo-400"></i>
+                                Go To Theme
+                            </button>
+                            <!-- Theme Dropdown Menu -->
+                            <div id="theme-nav-dropdown" class="hidden absolute top-10 left-0 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 w-56 z-50 max-h-60 overflow-y-auto">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Duplicate Finder trigger -->
+                        <button onclick="toggleDuplicateFinder()" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-750 border border-slate-750 rounded-xl text-xs font-semibold text-slate-200 transition h-9 font-sans">
+                            <i data-lucide="copy-check" class="w-4 h-4 text-emerald-400"></i>
+                            Find Near Duplicates
+                        </button>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 w-full lg:w-auto justify-end">
+                        <!-- Isolated Text Area Undo/Redo Buttons -->
+                        <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700/60 mr-2 select-none">
+                            <button id="btn-db-undo" onclick="dbUndo()" disabled class="p-1.5 bg-transparent text-slate-500 disabled:opacity-30 disabled:pointer-events-none hover:text-indigo-400 rounded-lg transition" title="Undo Text Edit (Ctrl+Z)">
+                                <i data-lucide="undo" class="w-4 h-4"></i>
+                            </button>
+                            <button id="btn-db-redo" onclick="dbRedo()" disabled class="p-1.5 bg-transparent text-slate-500 disabled:opacity-30 disabled:pointer-events-none hover:text-indigo-400 rounded-lg transition" title="Redo Text Edit (Ctrl+Y)">
+                                <i data-lucide="redo" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Rate unrated trigger button -->
+                        <button onclick="autoRateUnratedTo1()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-800/40 transition font-sans">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400 font-bold"></i>
+                            Rate Unrated
+                        </button>
+                        <!-- Paste All Button (Moved to Left of Copy All) -->
+                        <button onclick="pasteAllDatabaseText()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 bg-slate-750 hover:bg-slate-700 rounded-lg text-xs font-semibold text-slate-200 border border-slate-650 transition font-sans" title="Clear and Paste Clipboard Content">
+                            <i data-lucide="clipboard-paste" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            Paste All
+                        </button>
+                        <button onclick="copyDatabaseText()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 bg-slate-750 hover:bg-slate-700 rounded-lg text-xs font-semibold text-slate-200 border border-slate-650 transition font-sans">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            Copy All
+                        </button>
+                        <!-- Safe Link Save Data button next to Copy All -->
+                        <a href="https://docs.google.com/document/d/1cdXb89j0-RPMXlgnJ2jzhcuV7nFgZgywY0J2DYdD-Xo/edit?tab=t.44bn8zc6033j#bookmark=id.tb3cv94h4cre" target="_blank" rel="noopener noreferrer" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-750 hover:bg-emerald-700 border border-emerald-650 rounded-lg text-xs font-semibold text-white transition h-9 font-sans">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            Save Data
+                        </a>
+                        <button onclick="clearDatabaseText()" class="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 bg-rose-900/40 hover:bg-rose-900/60 text-rose-300 rounded-lg text-xs font-semibold border border-rose-800/40 transition font-sans">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Textarea wrapper Supporting sidebar alignments -->
+                <div class="flex flex-row items-stretch gap-4 w-full flex-grow min-h-[500px]">
+                    
+                    <!-- Near Duplicates Sidebar panel -->
+                    <div id="duplicates-sidebar" class="hidden w-80 bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col shrink-0 h-full overflow-hidden">
+                        <div class="flex justify-between items-center border-b border-slate-700/60 pb-2 mb-2 select-none">
+                            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1 font-sans">
+                                <i data-lucide="copy-check" class="w-3.5 h-3.5"></i> Near Duplicates
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="resetDismissedDuplicates()" class="text-[10px] text-slate-405 hover:text-slate-200 transition font-sans font-semibold" title="Reset all dismissed duplicate blocks">
+                                    Reset
+                                </button>
+                                <button onclick="toggleDuplicateFinder()" class="text-slate-400 hover:text-white transition">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Scrollable list container inside duplicates workspace (Spacious and scrollable) -->
+                        <div id="duplicates-list-container" class="flex-1 overflow-y-auto min-h-0 flex flex-col gap-3 pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                        
+                        <!-- Persistent duplicate refresh button -->
+                        <div class="pt-2 border-t border-slate-700/60 mt-2 select-none">
+                            <button onclick="refreshDuplicates()" class="w-full bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 hover:text-white rounded-xl py-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition font-sans">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-indigo-400"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Textarea Editor -->
+                    <div class="relative flex-grow flex flex-col h-full">
+                        <textarea id="database-textarea" oninput="handleTextareaChange()" onfocus="handleTextareaFocus()" onblur="handleTextareaBlur()" class="w-full h-full p-4 bg-slate-900 text-slate-200 font-mono text-sm rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none shadow-inner leading-relaxed" placeholder="========&#10;Basics&#10;========&#10;&#10;=== Words / Phrases ===&#10;hello / hola | 0 | 2026-06-08&#10;&#10;=== Retired ==="></textarea>
+                        
+                        <div class="absolute bottom-3 right-3 bg-slate-900/90 border border-slate-700 px-3 py-1 rounded-lg text-[11px] text-slate-400 flex gap-4 select-none">
+                            <div>Words / Phrases: <span id="count-words" class="text-slate-200 font-semibold">0</span></div>
+                            <div>Retired: <span id="count-retired" class="text-slate-200 font-semibold">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 2: STUDY CARDS -->
+        <section id="tab-study" class="hidden flex-col flex-grow gap-4">
+            
+            <!-- Controls Bar with aligned components -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex flex-col lg:flex-row gap-4 justify-between items-center shadow-md select-none">
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <!-- Study Pool selection with Info Trigger on the LEFT -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide font-sans">Category</span>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openStudyInfoModal()" class="flex items-center justify-center p-2 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-lg h-9 w-9 transition" title="Show Study Mode Info">
+                                <i data-lucide="info" class="w-4 h-4"></i>
+                            </button>
+                            
+                            <select id="study-pool-select" onchange="handlePoolSelectChange()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition h-9 font-sans">
+                                <option value="words" selected>Words / Phrases Only</option>
+                                <option value="weakest">Weakest Items (Score &amp; Time Weighted)</option>
+                                <option value="infinite-worst">Infinite Worst (Endless Mode)</option>
+                                <option value="infinite-best">Infinite Best (Retirement Finder)</option>
+                                <option value="pinned">Study Pinned FCs</option>
+                                <option id="custom-pool-option" value="custom" class="hidden">Custom Stats Filter</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pool Limit (Weakest) -->
+                    <div id="pool-limit-container" class="hidden flex flex-col gap-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide font-sans">Pool Size</span>
+                        <input type="number" id="pool-limit-input" value="5" min="1" onchange="initializeStudySession(true)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition w-20 h-9 text-center font-mono" />
+                    </div>
+
+                    <!-- Cooldown 5 Filter Toggle -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide font-sans">Cooldown</span>
+                        <div class="flex items-center gap-1.5 h-9 bg-slate-900 px-3 rounded-lg border border-slate-700" title="This only hides FCs that are rated 5 and still waiting for their next study milestone interval">
+                            <label class="flex items-center gap-1.5 text-xs text-slate-300 font-semibold cursor-pointer font-sans" title="This only hides FCs that are rated 5 and still waiting for their next study milestone interval">
+                                <input type="checkbox" id="hide-cooldown-toggle" onchange="applyFiltersToSession(false)" class="rounded bg-slate-900 border-slate-750 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer" />
+                                Hide Cooldown 5s
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Display Side Configuration -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide font-sans">Initial Side</span>
+                        <select id="study-side-select" onchange="renderCardView()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition h-9 font-sans">
+                            <option value="english">English First</option>
+                            <option value="spanish">Spanish First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Session progress tracker -->
+                <div class="flex items-center gap-4 text-xs text-slate-400 w-full lg:w-auto justify-between lg:justify-end">
+                    <div class="font-mono text-sm text-indigo-400 font-semibold" id="session-progress">
+                        0 / 0
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State Alert -->
+            <div id="study-empty-state" class="hidden bg-slate-800 rounded-2xl border border-slate-700 p-12 text-center flex-grow flex flex-col justify-center items-center shadow-lg select-none">
+                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-slate-500 mb-4 border border-slate-700">
+                    <i data-lucide="alert-circle" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-sans">No Study Items Found</h3>
+                <p id="empty-state-text" class="text-sm text-slate-400 max-w-sm mx-auto mb-6 font-normal font-sans"></p>
+                <button onclick="switchTab('data')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-md transition font-sans">
+                    Go to Editor &amp; add content
+                </button>
+            </div>
+
+            <!-- Flashcard Arena Grid (Card + Note Sidebar Stretched perfectly) -->
+            <div id="study-arena" class="hidden flex-grow flex flex-col justify-between gap-4">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch flex-grow">
+                    <!-- Left side: Flashcard (2 Columns) -->
+                    <div class="lg:col-span-2 flex flex-col justify-stretch">
+                        <div class="w-full h-full min-h-[280px] perspective-1000 cursor-pointer" onclick="flipCard()">
+                            <div id="flashcard-inner" class="w-full h-full relative preserve-3d transition-transform duration-300 ease-out transform">
+                                
+                                <!-- Card Front -->
+                                <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-800 to-slate-850 border-2 border-slate-700/80 rounded-2xl shadow-xl flex flex-col justify-between p-6">
+                                    <div class="flex justify-between items-center select-none">
+                                        <span id="front-side-label" class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-900 border border-indigo-800/60 px-2.5 py-1 rounded-full font-sans">Front</span>
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="speakText('front', event)" class="p-1.5 bg-slate-900 hover:bg-slate-750 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition" title="Speak Text">
+                                                <i data-lucide="volume-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <div id="card-score-badge-front" class="text-[10px] font-bold px-2 py-0.5 rounded font-mono">Score: 0</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center px-4 my-auto select-text">
+                                        <h3 id="card-front-text" onmouseup="stopPropIfTextSelected(event)" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-sans">Front Text</h3>
+                                        <p id="card-front-subtext" class="text-xs text-slate-400 mt-2 font-mono"></p>
+                                    </div>
+
+                                    <div class="flex justify-center items-center gap-1.5 text-xs text-slate-400 select-none border-t border-slate-700/40 pt-2 font-sans">
+                                        <i data-lucide="pointer" class="w-3.5 h-3.5"></i> Click or Tap to flip card
+                                    </div>
+                                </div>
+
+                                <!-- Card Back -->
+                                <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900/80 to-slate-850 border-2 border-indigo-500/50 rounded-2xl shadow-2xl flex flex-col justify-between p-6">
+                                    <div class="flex justify-between items-center select-none">
+                                        <span id="back-side-label" class="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-900 border border-emerald-800/60 px-2.5 py-1 rounded-full font-sans">Back</span>
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="speakText('back', event)" class="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-750 rounded-lg text-emerald-400 hover:text-emerald-300 transition" title="Speak Text">
+                                                <i data-lucide="volume-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <div id="card-score-badge-back" class="text-[10px] font-bold px-2 py-0.5 rounded font-mono">Score: 0</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center px-4 my-auto select-text">
+                                        <h3 id="card-back-text" onmouseup="stopPropIfTextSelected(event)" class="text-2xl sm:text-3xl font-black tracking-tight text-emerald-300 font-sans">Back Text</h3>
+                                        <p id="card-back-subtext" class="text-xs text-slate-400 mt-2 font-mono"></p>
+                                    </div>
+
+                                    <div class="flex justify-center items-center gap-1.5 text-xs text-slate-400 select-none border-t border-slate-700/40 pt-2 font-sans">
+                                        <i data-lucide="pointer" class="w-3.5 h-3.5"></i> Click or Tap to flip back
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right side: Note Container Sidebar (1 Column) -->
+                    <div class="lg:col-span-1 flex flex-col justify-stretch">
+                        <!-- Active Note Editor Sidebar -->
+                        <div id="note-sidebar" class="hidden w-full bg-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg flex flex-col h-full justify-between">
+                            <div class="flex flex-col gap-2 border-b border-slate-700/60 pb-3 mb-3">
+                                <div class="flex justify-between items-center select-none">
+                                    <div class="flex items-center gap-2 text-amber-400">
+                                        <i data-lucide="sticky-note" class="w-4 h-4 font-bold"></i>
+                                        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300 font-sans">Card Notes</h3>
+                                    </div>
+                                    <button onclick="deleteActiveNote()" class="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 transition animate-pulse font-sans">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Note
+                                    </button>
+                                </div>
+                                
+                                <!-- Unified Checkbox -->
+                                <label class="flex items-center gap-2 cursor-pointer mt-1">
+                                    <input type="checkbox" id="note-unify-checkbox" onchange="toggleNoteUnification(this.checked)" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer" />
+                                    <span class="text-xs font-semibold text-slate-300 select-none font-sans">Same note on both sides</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Multilingual Text Area Slots -->
+                            <div class="flex flex-col gap-3 flex-grow overflow-y-auto pr-1">
+                                <!-- Unified Note Textarea -->
+                                <div id="unified-note-area" class="flex flex-col gap-1.5 flex-grow">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide select-none font-sans">Unified Note</span>
+                                    <textarea id="unified-note-textarea" oninput="handleUnifiedNoteInput(this.value)" class="w-full flex-grow p-3 bg-slate-900 text-slate-200 text-sm rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed min-h-[140px]" placeholder="Memory clues, context details, or shared meanings..."></textarea>
+                                </div>
+
+                                <!-- Separated Notes Areas -->
+                                <div id="separated-note-area" class="hidden flex flex-col gap-3 flex-grow">
+                                    <!-- English Note Container -->
+                                    <div id="english-note-container" class="flex flex-col gap-1 flex-grow">
+                                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wide select-none font-sans">English Side Note</span>
+                                        <textarea id="english-note-textarea" oninput="handleEnglishNoteInput(this.value)" class="w-full flex-grow p-3 bg-slate-900 text-slate-200 text-sm rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed min-h-[140px]" placeholder="Type English note clues..."></textarea>
+                                    </div>
+                                    <!-- Spanish Note Container -->
+                                    <div id="spanish-note-container" class="flex flex-col gap-1 flex-grow">
+                                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wide select-none font-sans">Spanish Side Note</span>
+                                        <textarea id="spanish-note-textarea" oninput="handleSpanishNoteInput(this.value)" class="w-full flex-grow p-3 bg-slate-900 text-slate-200 text-sm rounded-xl border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed min-h-[140px]" placeholder="Type Spanish note cues..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-700/60 pt-2 font-mono select-none">
+                                <span class="font-sans">Direct text database sync</span>
+                                <span class="text-emerald-400 font-semibold flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Auto-Saved</span>
+                            </div>
+                        </div>
+
+                        <!-- No Note Placeholder Box -->
+                        <div id="note-placeholder" class="w-full bg-slate-800/40 rounded-2xl border-2 border-dashed border-slate-700 p-6 text-center flex flex-col justify-center items-center h-full min-h-[150px]">
+                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 mb-2">
+                                <i data-lucide="sticky-note" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3 select-none font-sans">No note created for this card.</p>
+                            <button onclick="createNewNote()" class="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-xs font-semibold text-slate-200 transition shadow-sm font-sans">
+                                <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-400"></i> Create Note
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Scoring, Pin, Retire & Navigation Controller -->
+                <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-slate-700/60 pb-3 select-none">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider font-sans">Rate Recall:</span>
+                            <!-- Isolated Study rating undo operations -->
+                            <button id="btn-undo" onclick="undo()" disabled class="p-1.5 bg-slate-900 border border-slate-750 hover:bg-slate-750 text-slate-400 disabled:opacity-30 disabled:pointer-events-none rounded-lg transition" title="Undo Last Rating (Ctrl+Z)">
+                                <i data-lucide="undo" class="w-4 h-4"></i>
+                            </button>
+                            <button id="btn-redo" onclick="redo()" disabled class="p-1.5 bg-slate-900 border border-slate-750 hover:bg-slate-750 text-slate-400 disabled:opacity-30 disabled:pointer-events-none rounded-lg transition" title="Redo Rating (Ctrl+Y)">
+                                <i data-lucide="redo" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Pin & Retire Card Button Suite -->
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-750 border border-slate-750 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
+                                <input type="checkbox" id="pin-card-checkbox" onchange="togglePinActiveCard(this.checked)" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer" />
+                                <span class="flex items-center gap-1 font-sans">
+                                    <i data-lucide="pin" class="w-3.5 h-3.5 text-amber-400"></i> Pin FC
+                                </span>
+                            </label>
+
+                            <button onclick="retireActiveCard()" class="flex items-center gap-1 px-3 py-1.5 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 rounded-lg text-xs font-semibold transition font-sans" title="Move to retired list immediately">
+                                <i data-lucide="archive" class="w-3.5 h-3.5 text-rose-400 font-bold"></i>
+                                Retire Card
+                            </button>
+                            <div class="flex gap-1">
+                                <button onclick="prevCard()" class="p-1.5 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Previous Card">
+                                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                                </button>
+                                <button onclick="nextCard()" class="p-1.5 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Next Card">
+                                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grading Button Suite (1 to 5 scores) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 font-mono select-none">
+                        <!-- Score 1 (Forgot) -->
+                        <button onclick="gradeCard(1)" class="group flex flex-col items-center justify-center p-2.5 rounded-xl bg-rose-900/40 hover:bg-rose-900/60 border border-rose-900/50 hover:border-rose-700 transition duration-150 font-semibold">
+                            <span class="text-xs font-bold text-rose-400 mb-0.5 group-hover:scale-105 transition-transform font-sans">Forgot</span>
+                            <span class="text-[9px] font-semibold text-rose-500 bg-rose-900 px-1.5 py-0.5 rounded-full font-mono">Score 1</span>
+                        </button>
+                        
+                        <!-- Score 2 (Hard) -->
+                        <button onclick="gradeCard(2)" class="group flex flex-col items-center justify-center p-2.5 rounded-xl bg-orange-900/40 hover:bg-orange-900/60 border border-orange-900/50 hover:border-orange-700 transition duration-150 font-semibold font-mono">
+                            <span class="text-xs font-bold text-orange-400 mb-0.5 group-hover:scale-105 transition-transform font-sans">Hard</span>
+                            <span class="text-[9px] font-semibold text-orange-500 bg-orange-900 px-1.5 py-0.5 rounded-full">Score 2</span>
+                        </button>
+
+                        <!-- Score 3 (Medium) -->
+                        <button onclick="gradeCard(3)" class="group flex flex-col items-center justify-center p-2.5 rounded-xl bg-amber-900/30 hover:bg-amber-900/50 border border-amber-900/50 hover:border-amber-600 transition duration-150 font-semibold">
+                            <span class="text-xs font-bold text-amber-300 mb-0.5 group-hover:scale-105 transition-transform font-sans">Medium</span>
+                            <span class="text-[9px] font-semibold text-amber-400 bg-amber-900 px-1.5 py-0.5 rounded-full font-mono">Score 3</span>
+                        </button>
+
+                        <!-- Score 4 (Good) -->
+                        <button onclick="gradeCard(4)" class="group flex flex-col items-center justify-center p-2.5 rounded-xl bg-yellow-900/20 hover:bg-yellow-900/40 border border-yellow-900/50 hover:border-yellow-700 transition duration-150 font-semibold">
+                            <span class="text-xs font-bold text-yellow-400 mb-0.5 group-hover:scale-105 transition-transform font-sans">Good</span>
+                            <span class="text-[9px] font-semibold text-yellow-500 bg-yellow-900 px-1.5 py-0.5 rounded-full font-mono">Score 4</span>
+                        </button>
+
+                        <!-- Score 5 (Mastered) -->
+                        <button onclick="gradeCard(5)" class="group flex flex-col items-center justify-center p-2.5 rounded-xl bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-900/50 hover:border-emerald-700 transition duration-150 font-semibold col-span-2 sm:col-span-1">
+                            <span class="text-xs font-bold text-emerald-400 mb-0.5 group-hover:scale-105 transition-transform font-sans">Mastered</span>
+                            <span class="text-[9px] font-semibold text-emerald-500 bg-emerald-900/80 px-1.5 py-0.5 rounded-full font-mono">Score 5</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- TAB 3: RETIRED ITEMS -->
+        <section id="tab-retired" class="hidden flex-col flex-grow gap-4">
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-5 flex flex-col flex-grow shadow-lg">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <div class="text-left">
+                        <h2 class="text-lg font-semibold text-white font-sans">Retired Words &amp; Phrases</h2>
+                        <p class="text-xs text-slate-400 font-sans">Manage vocabulary assets that you have parked or retired</p>
+                    </div>
+
+                    <!-- Isolated Retired Actions Undo/Redo Buttons -->
+                    <div class="flex items-center gap-2 select-none font-sans">
+                        <span class="text-xs text-slate-400 font-medium">Revert Movement:</span>
+                        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700/60 font-mono">
+                            <button id="btn-retired-undo" onclick="retiredUndo()" disabled class="p-1.5 bg-transparent text-slate-500 disabled:opacity-30 disabled:pointer-events-none hover:text-indigo-400 rounded-lg transition" title="Undo Movement (Ctrl+Z)">
+                                <i data-lucide="undo" class="w-4 h-4"></i>
+                            </button>
+                            <button id="btn-retired-redo" onclick="retiredRedo()" disabled class="p-1.5 bg-transparent text-slate-500 disabled:opacity-30 disabled:pointer-events-none hover:text-indigo-400 rounded-lg transition" title="Redo Movement (Ctrl+Y)">
+                                <i data-lucide="redo" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retired Table / Grid view -->
+                <div class="flex-grow overflow-y-auto max-h-[450px] bg-slate-900 rounded-xl border border-slate-750 p-2">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-300">
+                        <thead class="bg-slate-900 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-750 select-none">
+                            <tr>
+                                <th class="p-3 font-sans">Theme</th>
+                                <th class="p-3 font-sans">Vocabulary Translation (English / Spanish)</th>
+                                <th class="p-3 whitespace-nowrap font-sans">Retired Date</th>
+                                <th class="p-3 text-center font-sans">Score</th>
+                                <th class="p-3 text-right font-sans">Move Reversion Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="retired-list-tbody" class="divide-y divide-slate-800 font-mono">
+                            <!-- Populated Dynamically -->
+                        </tbody>
+                    </table>
+                    <div id="retired-empty-state" class="hidden text-center py-16 text-slate-500 flex flex-col items-center justify-center gap-2 select-none">
+                        <i data-lucide="box" class="w-8 h-8 text-slate-600"></i>
+                        <span class="font-sans text-xs">No retired items currently logged inside the selected active themes.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Context Right Click Menu -->
+    <div id="custom-context-menu" class="hidden fixed bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-2 w-48 z-50 select-none">
+        <button id="ctx-edit-btn" onclick="triggerCtxEdit()" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="edit" class="w-3.5 h-3.5 text-indigo-400"></i> Edit Flashcard
+        </button>
+        <button id="ctx-pin-btn" onclick="triggerCtxPin()" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="pin" class="w-3.5 h-3.5 text-amber-400"></i> Toggle Pin
+        </button>
+        <button id="ctx-retire-btn" onclick="triggerCtxRetire()" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="archive" class="w-3.5 h-3.5 text-rose-400 animate-pulse"></i> Retire Card
+        </button>
+        <hr id="ctx-divider" class="border-slate-700 my-1">
+        <button onclick="triggerCtxCopyAll()" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-sky-400 font-bold"></i> Copy Text Area
+        </button>
+        <button onclick="switchTab('study')" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-400"></i> Go to Study Tab
+        </button>
+        <button onclick="switchTab('data')" class="w-full text-left px-4 py-2 hover:bg-slate-700/80 text-xs font-semibold flex items-center gap-2 text-slate-200 font-sans">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i> Go to Text Tab
+        </button>
+    </div>
+
+    <!-- Persistent floating update notes link (Bottom-Right) -->
+    <a href="https://docs.google.com/document/d/1cdXb89j0-RPMXlgnJ2jzhcuV7nFgZgywY0J2DYdD-Xo/edit?tab=t.ir4nvl4ib308#bookmark=id.uxctoxf94y7s" target="_blank" rel="noopener noreferrer" class="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-amber-600 hover:bg-amber-550 text-white font-bold px-4 py-2.5 rounded-xl shadow-2xl transition duration-150 text-xs tracking-wide border border-amber-500 select-none font-sans">
+        <i data-lucide="edit-3" class="w-4 h-4"></i>
+        Update Notes
+    </a>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Reference Date for calculations (system-date-picker defaults to this, then syncs with client clock)
+        let activeStudyDate = "2026-06-27";
+
+        // Preloaded Demo Data displaying structural theme splits and repetition counts
+        const initialDefaultData = `========
+Basics & Food
+========
+
+=== Words / Phrases ===
+cat / el gato | 5 (2) | 2026-06-20
+English AND Spanish note: Feline companion
+dog / el perro | 5 | 2026-06-25
+English AND Spanish note: Best friend
+apple / la manzana | 3 | 2026-06-26 | pinned
+
+=== Retired ===
+carriage wheels / las ruedas de carroza | 1 | 2026-03-24
+
+========
+Travel & Directions
+========
+
+=== Words / Phrases ===
+car / el coche | 0 | 2026-05-15
+red / rojo | 1 | 2026-05-20
+blue / azul | 2 | 2026-05-22
+key / la llave | 4 | 2026-05-18 | pinned
+
+=== Retired ===
+old telephone / el telephone viejo | 2 | 2026-04-12
+English AND Spanish note: Antique communication item`;
+
+        // Active State Model
+        let currentTab = 'data';
+        let parsedDatabase = {}; // Maps: ThemeName -> { words: [], retired: [] }
+        let selectedThemes = new Set(); // Set of currently active theme names
+        let dbDirty = true; // Flag indicating if study cards need reload
+        
+        // Active learning session state
+        let unfilteredStudySessionList = []; // Clean source of truth for the loaded pool
+        let studySessionList = [];           // Filtered/active sublist visible to user
+        let currentCardIndex = 0;
+        let isCardFlipped = false;
+        let isNoteForceOpen = false;
+        let recentInfiniteCards = [];
+
+        // Pin Filter State variables (Relocated inside Overview tab)
+        let pinFilterEnabled = false;
+        let pinFilterMode = 'only'; // 'only' or 'exclude'
+
+        // Separated History Stacks
+        let dbUndoHistory = [];
+        let dbRedoHistory = [];
+        let lastCommittedValue = ""; 
+
+        let studyUndoHistory = [];
+        let studyRedoHistory = [];
+
+        let retiredUndoHistory = [];
+        let retiredRedoHistory = [];
+
+        // Dismissed near-duplicate card registry
+        let dismissedDuplicates = new Set(JSON.parse(localStorage.getItem('dismissed_duplicates') || '[]'));
+
+        // Interactive Stats Filter parameters
+        let activeFilters = {
+            scores: new Set(),
+            reps: new Set(),
+            recencies: new Set()
+        };
+
+        // Two-step double-click confirm safeguards
+        let pinSelectedConfirmState = false;
+        let pinSelectedConfirmTimeout = null;
+        let pinSelectedLastClickTime = 0;
+
+        let pinAllConfirmState = false;
+        let pinAllConfirmTimeout = null;
+        let pinAllLastClickTime = 0;
+
+        let activeLineAnimation = null;
+        let customSelectedStatsItems = []; // To persist stats selections for dynamic filtering
+
+        // Page Load Routine
+        window.onload = function() {
+            try {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                activeStudyDate = `${year}-${month}-${day}`;
+            } catch (e) {
+                // Keep default fallback
+            }
+
+            document.getElementById('system-date-picker').value = activeStudyDate;
+
+            const savedText = localStorage.getItem('vocab_spanish_db');
+            const targetText = savedText ? savedText : initialDefaultData;
+            
+            document.getElementById('database-textarea').value = targetText;
+            lastCommittedValue = targetText;
+            
+            dbUndoHistory.push(targetText);
+            updateDbTextButtonsState();
+            
+            lucide.createIcons();
+            syncStateFromTextarea();
+
+            // Keyboard Undo/Redo power-user hotkey listeners (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
+            window.addEventListener('keydown', function(e) {
+                const isCtrl = e.ctrlKey || e.metaKey;
+                if (isCtrl) {
+                    if (e.key.toLowerCase() === 'z') {
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            triggerContextRedo();
+                        } else {
+                            triggerContextUndo();
+                        }
+                    } else if (e.key.toLowerCase() === 'y') {
+                        e.preventDefault();
+                        triggerContextRedo();
+                    }
+                }
+            });
+
+            // Right Click Context Menu initialization
+            window.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const menu = document.getElementById('custom-context-menu');
+                
+                const editBtn = document.getElementById('ctx-edit-btn');
+                const pinBtn = document.getElementById('ctx-pin-btn');
+                const retireBtn = document.getElementById('ctx-retire-btn');
+                const divider = document.getElementById('ctx-divider');
+                
+                if (currentTab === 'study' && studySessionList.length > 0) {
+                    editBtn.classList.remove('hidden');
+                    pinBtn.classList.remove('hidden');
+                    retireBtn.classList.remove('hidden');
+                    divider.classList.remove('hidden');
+                } else {
+                    editBtn.classList.add('hidden');
+                    pinBtn.classList.add('hidden');
+                    retireBtn.classList.add('hidden');
+                    divider.classList.add('hidden');
+                }
+                
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+                menu.classList.remove('hidden');
+            });
+            
+            window.addEventListener('click', function(e) {
+                document.getElementById('custom-context-menu').classList.add('hidden');
+                // Auto-close theme navigator popover if clicked outside
+                const navDropdown = document.getElementById('theme-nav-dropdown');
+                if (navDropdown && !navDropdown.classList.contains('hidden') && !e.target.closest('#theme-nav-dropdown') && !e.target.textContent.includes('Go To Theme')) {
+                    navDropdown.classList.add('hidden');
+                }
+            });
+        };
+
+        function triggerContextUndo() {
+            if (currentTab === 'data') {
+                dbUndo();
+            } else if (currentTab === 'study') {
+                undo();
+            } else if (currentTab === 'retired') {
+                retiredUndo();
+            }
+        }
+
+        function triggerContextRedo() {
+            if (currentTab === 'data') {
+                dbRedo();
+            } else if (currentTab === 'study') {
+                redo();
+            } else if (currentTab === 'retired') {
+                retiredRedo();
+            }
+        }
+
+        function updateStudyDate(newVal) {
+            if (newVal) {
+                activeStudyDate = newVal;
+                showToast(`Study reference date set to: ${newVal}`);
+                syncStateFromTextarea();
+            }
+        }
+
+        function handlePoolSelectChange() {
+            const val = document.getElementById('study-pool-select').value;
+            document.getElementById('pool-limit-container').classList.toggle('hidden', val !== 'weakest');
+            initializeStudySession(true);
+        }
+
+        // Tab Switching Routine
+        function switchTab(tab) {
+            if (currentTab === 'data') {
+                captureDbTextStateImmediate();
+            }
+
+            const previousTab = currentTab;
+            currentTab = tab;
+            
+            const dataTab = document.getElementById('tab-data');
+            const studyTab = document.getElementById('tab-study');
+            const retiredTab = document.getElementById('tab-retired');
+            
+            const dataBtn = document.getElementById('tab-data-btn');
+            const studyBtn = document.getElementById('tab-study-btn');
+            const retiredBtn = document.getElementById('tab-retired-btn');
+            
+            dataTab.classList.add('hidden'); dataTab.classList.remove('flex');
+            studyTab.classList.add('hidden'); studyTab.classList.remove('flex');
+            retiredTab.classList.add('hidden'); retiredTab.classList.remove('flex');
+
+            const defaultBtnClass = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200 whitespace-nowrap font-sans";
+            const activeBtnClass = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-sm whitespace-nowrap font-sans";
+            
+            dataBtn.className = defaultBtnClass;
+            studyBtn.className = defaultBtnClass;
+            retiredBtn.className = defaultBtnClass;
+
+            if (tab === 'data') {
+                dataTab.classList.remove('hidden');
+                dataTab.classList.add('flex');
+                dataBtn.className = activeBtnClass;
+                
+                // Highlight and scroll immediately to the card the user is studying
+                if (previousTab === 'study' && studySessionList.length > 0) {
+                    setTimeout(() => {
+                        highlightAndScrollToCurrentCardLine();
+                    }, 80);
+                }
+            } else if (tab === 'study') {
+                studyTab.classList.remove('hidden');
+                studyTab.classList.add('flex');
+                studyBtn.className = activeBtnClass;
+                
+                if (dbDirty) {
+                    syncStateFromTextarea();
+                    if (unfilteredStudySessionList.length > 0 && document.getElementById('study-pool-select').value !== 'custom') {
+                        syncStudySessionWithDatabase();
+                    } else {
+                        initializeStudySession(true);
+                    }
+                } else {
+                    renderCardView();
+                }
+            } else if (tab === 'retired') {
+                retiredTab.classList.remove('hidden');
+                retiredTab.classList.add('flex');
+                retiredBtn.className = activeBtnClass;
+                
+                syncStateFromTextarea();
+                renderRetiredTab();
+            }
+        }
+
+        // Highlight and scroll selection trigger for text tab matching
+        function highlightAndScrollToCurrentCardLine() {
+            if (!studySessionList || studySessionList.length === 0 || currentCardIndex >= studySessionList.length) return;
+            const currentItem = studySessionList[currentCardIndex];
+            scrollToCardInText(currentItem.english, currentItem.spanish);
+        }
+
+        function scrollToCardInText(english, spanish) {
+            const textarea = document.getElementById('database-textarea');
+            if (!textarea) return;
+            
+            const text = textarea.value;
+            const escapedEnglish = english.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const escapedSpanish = spanish.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            
+            // Match any card line starting with this english and spanish pair
+            const regexStr = '^\\s*' + escapedEnglish + '\\s*/\\s*' + escapedSpanish + '(?:\\s*\\|.*)?$';
+            const regex = new RegExp(regexStr, 'mi');
+            const match = text.match(regex);
+            
+            if (match) {
+                const startIdx = match.index;
+                const endIdx = startIdx + match[0].length;
+                
+                textarea.focus();
+                textarea.setSelectionRange(startIdx, endIdx);
+                
+                // Perfect center-scroll calculation inside textarea viewport
+                const linesBefore = text.substring(0, startIdx).split('\n').length;
+                const totalLines = text.split('\n').length;
+                const lineHeight = textarea.scrollHeight / totalLines;
+                textarea.scrollTop = Math.max(0, (linesBefore * lineHeight) - (textarea.clientHeight / 2));
+                
+                // Highly visible focus timing structure
+                setTimeout(() => {
+                    if (document.activeElement === textarea) {
+                        textarea.setSelectionRange(endIdx, endIdx);
+                    }
+                }, 1500);
+            }
+        }
+
+        // Milestone study date cooldown criteria checker
+        function canRate5Again(item) {
+            if (item.score !== 5) return true;
+            if (!item.date) return true; // Never rated, allowed
+            
+            try {
+                const daysDiff = getDaysDifference(item.date, activeStudyDate);
+                const currentRep = item.repetitions || 1;
+                
+                if (currentRep === 1) {
+                    // Level (1) -> (2): Requires 1/4 of a month (7.5 days)
+                    return daysDiff >= 7.5;
+                } else if (currentRep === 2) {
+                    // Level (2) -> (3): Requires 1/4 of a month (7.5 days)
+                    return daysDiff >= 7.5;
+                } else if (currentRep === 3) {
+                    // Level (3) -> (4): Requires half a month (15 days)
+                    return daysDiff >= 15.0;
+                } else if (currentRep >= 4) {
+                    // Level (4) -> (5+): Requires full month (30 days)
+                    return daysDiff >= 30.0;
+                }
+                return daysDiff >= 30.0;
+            } catch (e) {
+                return true;
+            }
+        }
+
+        // Returns elements belonging exclusively to checked themes (WITHOUT cooldown hiding, making stats normal)
+        function getSelectedItems(category) {
+            let items = [];
+            for (let theme of Object.keys(parsedDatabase)) {
+                if (selectedThemes.has(theme)) {
+                    if (parsedDatabase[theme][category]) {
+                        items.push(...parsedDatabase[theme][category].map(item => ({...item, themeName: theme})));
+                    }
+                }
+            }
+            return items;
+        }
+
+        // Parses text content into parsedDatabase keyed by custom theme divisions
+        function syncStateFromTextarea() {
+            const text = document.getElementById('database-textarea').value;
+            const rawLines = text.split('\n');
+            
+            parsedDatabase = {};
+            
+            let currentTheme = "General";
+            let currentSection = null;
+            let lastParsedItem = null;
+            
+            parsedDatabase[currentTheme] = { words: [], retired: [] };
+            
+            for (let i = 0; i < rawLines.length; i++) {
+                const line = rawLines[i].trim();
+                const lowerLine = line.toLowerCase();
+                
+                // Matches "========" theme breaks on new lines
+                if (line === "========") {
+                    if (i + 2 < rawLines.length && rawLines[i + 2].trim() === "========") {
+                        const themeName = rawLines[i + 1].trim();
+                        if (themeName && themeName !== "========") {
+                            currentTheme = themeName;
+                            if (!parsedDatabase[currentTheme]) {
+                                parsedDatabase[currentTheme] = { words: [], retired: [] };
+                            }
+                            currentSection = null;
+                            lastParsedItem = null;
+                            i += 2; // skip forward past header block
+                            continue;
+                        }
+                    }
+                }
+                
+                // Section dividers: "Words / Phrases" and "Retired" ONLY
+                if (lowerLine.startsWith('===') && (lowerLine.includes('word') || lowerLine.includes('phrase'))) {
+                    currentSection = 'words';
+                    lastParsedItem = null;
+                    continue;
+                } else if (lowerLine.startsWith('===') && lowerLine.includes('retired')) {
+                    currentSection = 'retired';
+                    lastParsedItem = null;
+                    continue;
+                }
+                
+                if (line === '' || line.startsWith('===') || line.startsWith('#') || line === '========') {
+                    continue;
+                }
+                
+                // Parses card notes configuration
+                if (lowerLine.startsWith('english and spanish note:') || lowerLine.startsWith('note:')) {
+                    const prefixLength = lowerLine.startsWith('note:') ? 5 : 25;
+                    const noteContent = line.substring(prefixLength).trim();
+                    if (lastParsedItem) {
+                        lastParsedItem.englishNote = noteContent;
+                        lastParsedItem.spanishNote = noteContent;
+                        lastParsedItem.isNotesUnified = true;
+                    }
+                    continue;
+                } else if (lowerLine.startsWith('english note:')) {
+                    const noteContent = line.substring(13).trim();
+                    if (lastParsedItem) {
+                        lastParsedItem.englishNote = noteContent;
+                        lastParsedItem.isNotesUnified = false;
+                    }
+                    continue;
+                } else if (lowerLine.startsWith('spanish note:')) {
+                    const noteContent = line.substring(13).trim();
+                    if (lastParsedItem) {
+                        lastParsedItem.spanishNote = noteContent;
+                        lastParsedItem.isNotesUnified = false;
+                    }
+                    continue;
+                }
+                
+                if (line.includes('/')) {
+                    let mainPart = line;
+                    let score = 0;
+                    let repetitions = 1;
+                    let date = "";
+                    let pinned = false;
+                    
+                    let parts = line.split('|');
+                    
+                    // Parse optional pinned tag anywhere at the end
+                    for (let p = 0; p < parts.length; p++) {
+                        if (parts[p].trim().toLowerCase() === 'pinned') {
+                            pinned = true;
+                            parts.splice(p, 1);
+                            p--;
+                        }
+                    }
+                    
+                    mainPart = parts[0].trim();
+                    
+                    // Parse "english / spanish | score (repetitions) | date"
+                    if (parts[1]) {
+                        const scorePart = parts[1].trim();
+                        const scoreMatch5 = scorePart.match(/^5(?:\s*\((\d+)\))?$/);
+                        if (scoreMatch5) {
+                            score = 5;
+                            repetitions = scoreMatch5[1] ? parseInt(scoreMatch5[1], 10) : 1;
+                        } else {
+                            const simpleScoreMatch = scorePart.match(/^(\d+)/);
+                            if (simpleScoreMatch) {
+                                score = parseInt(simpleScoreMatch[1], 10);
+                            }
+                            score = Math.max(0, Math.min(5, score));
+                            if (score !== 5) {
+                                repetitions = 1;
+                            }
+                        }
+                    }
+                    
+                    if (parts[2]) {
+                        date = parts[2].trim();
+                    }
+                    
+                    const slashParts = mainPart.split('/');
+                    const english = slashParts[0].trim();
+                    const spanish = slashParts[1].trim();
+                    
+                    if (english && spanish && currentSection) {
+                        const newItem = {
+                            english,
+                            spanish,
+                            score,
+                            repetitions,
+                            date,
+                            pinned,
+                            englishNote: '',
+                            spanishNote: '',
+                            isNotesUnified: false,
+                            id: `${currentTheme}-${currentSection}-${parsedDatabase[currentTheme][currentSection].length}`
+                        };
+                        parsedDatabase[currentTheme][currentSection].push(newItem);
+                        lastParsedItem = newItem;
+                    }
+                } else {
+                    lastParsedItem = null;
+                }
+            }
+            
+            // Clean empty fallback lists if customized sets are present
+            let themes = Object.keys(parsedDatabase);
+            if (themes.length > 1 && parsedDatabase["General"].words.length === 0 && parsedDatabase["General"].retired.length === 0) {
+                delete parsedDatabase["General"];
+            }
+            
+            // Re-sync checklist selections
+            let updatedThemes = Object.keys(parsedDatabase);
+            if (selectedThemes.size === 0) {
+                updatedThemes.forEach(t => selectedThemes.add(t));
+            } else {
+                for (let t of selectedThemes) {
+                    if (!parsedDatabase[t]) {
+                        selectedThemes.delete(t);
+                    }
+                }
+                if (selectedThemes.size === 0 && updatedThemes.length > 0) {
+                    selectedThemes.add(updatedThemes[0]);
+                }
+            }
+            
+            // Re-sync active studied item structures instantly
+            updateStudySessionListFromDatabase();
+            
+            document.getElementById('count-words').innerText = getSelectedItems('words').length;
+            document.getElementById('count-retired').innerText = getSelectedItems('retired').length;
+
+            let totalActiveFcs = 0;
+            for (let theme of Object.keys(parsedDatabase)) {
+                totalActiveFcs += parsedDatabase[theme].words.length;
+            }
+            const headerTotalEl = document.getElementById('header-total-fcs');
+            if (headerTotalEl) {
+                headerTotalEl.innerText = totalActiveFcs;
+            }
+
+            // Re-render Navigation lists
+            renderThemeNavDropdown();
+        }
+
+        // Writes internal database modifications back to the textarea editor
+        function writeDataToTextarea() {
+            let outputLines = [];
+            let themes = Object.keys(parsedDatabase);
+            
+            themes.forEach((themeName, index) => {
+                if (themeName !== "General" || parsedDatabase["General"].words.length > 0 || parsedDatabase["General"].retired.length > 0 || themes.length === 1) {
+                    outputLines.push("========");
+                    outputLines.push(themeName);
+                    outputLines.push("========");
+                    outputLines.push("");
+                }
+                
+                let themeData = parsedDatabase[themeName];
+                
+                outputLines.push("=== Words / Phrases ===");
+                themeData.words.forEach(item => {
+                    let scorePart = `${item.score}`;
+                    if (item.score === 5) {
+                        const repPart = item.repetitions > 1 ? ` (${item.repetitions})` : "";
+                        scorePart = `5${repPart}`;
+                    }
+                    const datePart = item.date ? ` | ${item.date}` : (item.pinned ? " | " : "");
+                    const pinnedPart = item.pinned ? " | pinned" : "";
+                    outputLines.push(`${item.english} / ${item.spanish} | ${scorePart}${datePart}${pinnedPart}`);
+                    writeItemNotes(outputLines, item);
+                });
+                outputLines.push("");
+
+                outputLines.push("=== Retired ===");
+                themeData.retired.forEach(item => {
+                    let scorePart = `${item.score}`;
+                    if (item.score === 5) {
+                        const repPart = item.repetitions > 1 ? ` (${item.repetitions})` : "";
+                        scorePart = `5${repPart}`;
+                    }
+                    const datePart = item.date ? ` | ${item.date}` : (item.pinned ? " | " : "");
+                    const pinnedPart = item.pinned ? " | pinned" : "";
+                    outputLines.push(`${item.english} / ${item.spanish} | ${scorePart}${datePart}${pinnedPart}`);
+                    writeItemNotes(outputLines, item);
+                });
+                
+                if (index < themes.length - 1) {
+                    outputLines.push("");
+                }
+            });
+            
+            const generatedText = outputLines.join('\n');
+            document.getElementById('database-textarea').value = generatedText;
+            lastCommittedValue = generatedText;
+            
+            localStorage.setItem('vocab_spanish_db', generatedText);
+            syncStateFromTextarea();
+            dbDirty = false;
+        }
+
+        function writeItemNotes(arr, item) {
+            if (item.isNotesUnified) {
+                arr.push(`English AND Spanish note: ${item.englishNote || ''}`);
+            } else {
+                if (item.englishNote && item.englishNote.trim() !== '') {
+                    arr.push(`English note: ${item.englishNote}`);
+                }
+                if (item.spanishNote && item.spanishNote.trim() !== '') {
+                    arr.push(`Spanish note: ${item.spanishNote}`);
+                }
+            }
+        }
+
+        function findItemInDatabaseById(id) {
+            for (let theme of Object.keys(parsedDatabase)) {
+                for (let cat of ['words', 'retired']) {
+                    let match = parsedDatabase[theme][cat].find(i => i.id === id);
+                    if (match) return match;
+                }
+            }
+            return null;
+        }
+
+        function findItemInDatabase(english, spanish, themeName) {
+            if (themeName && parsedDatabase[themeName]) {
+                for (let cat of ['words', 'retired']) {
+                    let match = parsedDatabase[themeName][cat].find(i => i.english === english && i.spanish === spanish);
+                    if (match) return { item: match, category: cat, themeName: themeName };
+                }
+            }
+            for (let theme of Object.keys(parsedDatabase)) {
+                for (let cat of ['words', 'retired']) {
+                    let match = parsedDatabase[theme][cat].find(i => i.english === english && i.spanish === spanish);
+                    if (match) return { item: match, category: cat, themeName: theme };
+                }
+            }
+            return null;
+        }
+
+        // Pin filter switches
+        function togglePinFilterEnable(checked) {
+            pinFilterEnabled = checked;
+            document.getElementById('pin-filter-toggle-btn').disabled = !checked;
+        }
+
+        function togglePinFilterMode() {
+            const btn = document.getElementById('pin-filter-toggle-btn');
+            if (pinFilterMode === 'only') {
+                pinFilterMode = 'exclude';
+                btn.innerText = 'Exclude Pinned FCs';
+            } else {
+                pinFilterMode = 'only';
+                btn.innerText = 'Only Pinned FCs';
+            }
+        }
+
+        // REFACTORED COOLDOWN SYSTEM
+        // Core utility to safely map DB changes and cooldown parameters to the visible active view list
+        function applyFiltersToSession(resetIndex = false) {
+            const previousCard = studySessionList[currentCardIndex];
+            
+            // Map latest database state values to all items in our unfiltered candidate list
+            studySessionList = unfilteredStudySessionList.filter(item => {
+                const dbMatch = findItemInDatabase(item.english, item.spanish, item.themeName) || findItemInDatabaseById(item.id);
+                if (dbMatch) {
+                    const matchItem = dbMatch.item || dbMatch;
+                    item.score = matchItem.score;
+                    item.repetitions = matchItem.repetitions;
+                    item.date = matchItem.date;
+                    item.pinned = matchItem.pinned;
+                    item.englishNote = matchItem.englishNote;
+                    item.spanishNote = matchItem.spanishNote;
+                    item.isNotesUnified = matchItem.isNotesUnified;
+                }
+
+                // If hide cooldown toggle is enabled, reject any 5s that are on active cooldown
+                const hideCooldown = document.getElementById('hide-cooldown-toggle').checked;
+                if (hideCooldown && item.score === 5) {
+                    return canRate5Again(item);
+                }
+                return true;
+            });
+
+            if (resetIndex) {
+                currentCardIndex = 0;
+            } else if (previousCard) {
+                // Try maintaining position on the exact same card if it still matches the filter
+                const newIndex = studySessionList.findIndex(item => item.id === previousCard.id);
+                if (newIndex !== -1) {
+                    currentCardIndex = newIndex;
+                } else {
+                    // Clamping pointer to bounds if the card was hidden dynamically
+                    if (studySessionList.length > 0) {
+                        currentCardIndex = currentCardIndex % studySessionList.length;
+                    } else {
+                        currentCardIndex = 0;
+                    }
+                }
+            } else {
+                currentCardIndex = 0;
+            }
+
+            renderCardView();
+        }
+
+        // Study Session Initialization routine supporting new modes and precise cooldown exclusions
+        function initializeStudySession(resetIndex = true) {
+            const poolSelect = document.getElementById('study-pool-select').value;
+            
+            if (resetIndex) {
+                currentCardIndex = 0;
+            }
+            resetCardFlipDirectly();
+
+            let activePool = getSelectedItems('words');
+
+            // 1. Candidate gathering phase
+            if (poolSelect === 'words') {
+                unfilteredStudySessionList = activePool;
+            } else if (poolSelect === 'pinned') {
+                unfilteredStudySessionList = activePool.filter(item => item.pinned);
+            } else if (poolSelect === 'weakest') {
+                activePool.sort((a, b) => {
+                    if (a.score !== b.score) {
+                        return a.score - b.score; 
+                    }
+                    if (!a.date) return -1;
+                    if (!b.date) return 1;
+                    return a.date.localeCompare(b.date);
+                });
+                
+                let limit = parseInt(document.getElementById('pool-limit-input').value, 10);
+                if (isNaN(limit) || limit <= 0) limit = 5;
+                
+                unfilteredStudySessionList = shuffleArray(activePool.slice(0, limit));
+            } else if (poolSelect === 'infinite-worst') {
+                activePool.sort((a, b) => a.score - b.score);
+                unfilteredStudySessionList = shuffleArray(activePool.slice(0, 5));
+            } else if (poolSelect === 'infinite-best') {
+                const infiniteBestPool = activePool.filter(item => {
+                    if (item.score === 4) return true;
+                    if (item.score === 5 && canRate5Again(item)) return true;
+                    return false;
+                });
+                infiniteBestPool.sort((a, b) => b.score - a.score);
+                unfilteredStudySessionList = shuffleArray(infiniteBestPool.slice(0, 8));
+            } else if (poolSelect === 'custom') {
+                unfilteredStudySessionList = [...customSelectedStatsItems];
+            }
+
+            // 2. Perform safe filter rendering pass (This handles 'hide-cooldown' toggle cleanly)
+            applyFiltersToSession(resetIndex);
+            dbDirty = false;
+        }
+
+        // Render card content and styling
+        function renderCardView() {
+            const emptyState = document.getElementById('study-empty-state');
+            const studyArena = document.getElementById('study-arena');
+            const progress = document.getElementById('session-progress');
+
+            if (!studySessionList || studySessionList.length === 0) {
+                emptyState.classList.remove('hidden');
+                studyArena.classList.add('hidden');
+                progress.innerText = "0 / 0";
+                
+                const poolVal = document.getElementById('study-pool-select').value;
+                if (poolVal === 'weakest') {
+                    document.getElementById('empty-state-text').innerText = "There are no weak active items inside the selected theme pools. Rate items as score 1-3 to begin!";
+                } else if (poolVal === 'infinite-worst') {
+                    document.getElementById('empty-state-text').innerText = "All vocabulary items in the selected themes are fully mastered!";
+                } else if (poolVal === 'infinite-best') {
+                    document.getElementById('empty-state-text').innerText = "No masterable cards are currently ready for score advancement. Try rating other items first!";
+                } else if (poolVal === 'pinned') {
+                    document.getElementById('empty-state-text').innerText = "No pinned cards match your active filter configurations.";
+                } else if (poolVal === 'custom') {
+                    document.getElementById('empty-state-text').innerText = "No cards matched your combined stats criteria or they are currently on 5s Cooldown!";
+                } else {
+                    document.getElementById('empty-state-text').innerText = "There are no active vocabulary items matching this category inside the selected active themes.";
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            studyArena.classList.remove('hidden');
+
+            const currentItem = studySessionList[currentCardIndex];
+            const studySide = document.getElementById('study-side-select').value;
+
+            let frontText = currentItem.english;
+            let frontLangLabel = "Front / English";
+            let backText = currentItem.spanish;
+            let backLangLabel = "Back / Spanish";
+
+            if (studySide === 'spanish') {
+                frontText = currentItem.spanish;
+                frontLangLabel = "Front / Spanish";
+                backText = currentItem.english;
+                backLangLabel = "Back / English";
+            }
+
+            document.getElementById('front-side-label').innerText = frontLangLabel;
+            document.getElementById('back-side-label').innerText = backLangLabel;
+
+            document.getElementById('card-front-text').innerText = frontText;
+            document.getElementById('card-back-text').innerText = backText;
+
+            // Repetition and dates formatting (No legacy time notation)
+            const scoreLabel = currentItem.score === 5 ? (currentItem.repetitions > 1 ? ` (${currentItem.repetitions})` : "") : "";
+            const dateLabel = currentItem.date ? `Last studied: ${currentItem.date}${scoreLabel}` : "Never studied";
+            
+            document.getElementById('card-front-subtext').innerText = dateLabel;
+            document.getElementById('card-back-subtext').innerText = dateLabel;
+            
+            const frontBadge = document.getElementById('card-score-badge-front');
+            const backBadge = document.getElementById('card-score-badge-back');
+            
+            const badgeClasses = getScoreBadgeClasses(currentItem.score);
+            frontBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded ${badgeClasses}`;
+            frontBadge.innerText = `Mastery: ${currentItem.score}/5`;
+            
+            backBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded ${badgeClasses}`;
+            backBadge.innerText = `Mastery: ${currentItem.score}/5`;
+
+            // Progress Indicators - dynamically reads the count of the study session
+            progress.innerText = `${currentCardIndex + 1} / ${studySessionList.length}`;
+
+            // Pin Status sync
+            const pinCheckbox = document.getElementById('pin-card-checkbox');
+            if (pinCheckbox) {
+                pinCheckbox.checked = !!currentItem.pinned;
+            }
+
+            // Note editor configurations
+            const noteSidebar = document.getElementById('note-sidebar');
+            const notePlaceholder = document.getElementById('note-placeholder');
+            
+            const hasEnglishNote = currentItem.englishNote && currentItem.englishNote.trim() !== '';
+            const hasSpanishNote = currentItem.spanishNote && currentItem.spanishNote.trim() !== '';
+
+            let activeVisibleLanguage = studySide;
+            if (isCardFlipped) {
+                activeVisibleLanguage = (studySide === 'english') ? 'spanish' : 'english';
+            }
+
+            if (hasEnglishNote || hasSpanishNote || currentItem.isNotesUnified || isNoteForceOpen) {
+                noteSidebar.classList.remove('hidden');
+                notePlaceholder.classList.add('hidden');
+                
+                document.getElementById('note-unify-checkbox').checked = currentItem.isNotesUnified;
+                
+                if (currentItem.isNotesUnified) {
+                    document.getElementById('unified-note-area').classList.remove('hidden');
+                    document.getElementById('separated-note-area').classList.add('hidden');
+                    document.getElementById('unified-note-textarea').value = currentItem.englishNote || "";
+                } else {
+                    document.getElementById('unified-note-area').classList.add('hidden');
+                    document.getElementById('separated-note-area').classList.remove('hidden');
+
+                    const engContainer = document.getElementById('english-note-container');
+                    const espContainer = document.getElementById('spanish-note-container');
+
+                    if (activeVisibleLanguage === 'english') {
+                        engContainer.classList.remove('hidden');
+                        espContainer.classList.add('hidden');
+                        document.getElementById('english-note-textarea').value = currentItem.englishNote || "";
+                    } else {
+                        engContainer.classList.add('hidden');
+                        espContainer.classList.remove('hidden');
+                        document.getElementById('spanish-note-textarea').value = currentItem.spanishNote || "";
+                    }
+                }
+            } else {
+                noteSidebar.classList.add('hidden');
+                notePlaceholder.classList.remove('hidden');
+            }
+        }
+
+        function getScoreBadgeClasses(score) {
+            if (score <= 1) return 'bg-rose-900/80 text-rose-400 border border-rose-900/40';
+            if (score <= 3) return 'bg-amber-900/80 text-amber-400 border border-amber-900/40';
+            return 'bg-emerald-900/80 text-emerald-400 border border-emerald-900/40';
+        }
+
+        // Interactive card flipping
+        function flipCard() {
+            const selectedText = window.getSelection().toString();
+            if (selectedText && selectedText.trim() !== '') {
+                return;
+            }
+
+            const cardInner = document.getElementById('flashcard-inner');
+            isCardFlipped = !isCardFlipped;
+            if (isCardFlipped) {
+                cardInner.classList.add('rotate-y-180');
+            } else {
+                cardInner.classList.remove('rotate-y-180');
+            }
+            renderCardView();
+        }
+
+        function resetCardFlipDirectly() {
+            isCardFlipped = false;
+            const cardInner = document.getElementById('flashcard-inner');
+            cardInner.classList.add('no-transition');
+            cardInner.classList.remove('rotate-y-180');
+            cardInner.offsetHeight; // force paint reflow
+            cardInner.classList.remove('no-transition');
+        }
+
+        function nextCard() {
+            if (studySessionList.length === 0) return;
+            isNoteForceOpen = false;
+            resetCardFlipDirectly();
+            currentCardIndex = (currentCardIndex + 1) % studySessionList.length;
+            renderCardView();
+        }
+
+        function prevCard() {
+            if (studySessionList.length === 0) return;
+            isNoteForceOpen = false;
+            resetCardFlipDirectly();
+            currentCardIndex = (currentCardIndex - 1 + studySessionList.length) % studySessionList.length;
+            renderCardView();
+        }
+
+        function triggerCtxEdit() {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            document.getElementById('edit-card-english').value = activeItem.english;
+            document.getElementById('edit-card-spanish').value = activeItem.spanish;
+            document.getElementById('edit-card-modal').classList.remove('hidden');
+        }
+
+        function closeEditCardModal() {
+            document.getElementById('edit-card-modal').classList.add('hidden');
+        }
+
+        function saveEditedCard() {
+            if (studySessionList.length === 0) return;
+            const englishInput = document.getElementById('edit-card-english').value.trim();
+            const spanishInput = document.getElementById('edit-card-spanish').value.trim();
+            
+            if (!englishInput || !spanishInput) {
+                showToast("Both English and Spanish values must be provided.");
+                return;
+            }
+            
+            const activeItem = studySessionList[currentCardIndex];
+            const oldEnglish = activeItem.english;
+            const oldSpanish = activeItem.spanish;
+            
+            activeItem.english = englishInput;
+            activeItem.spanish = spanishInput;
+            
+            const dbRef = findItemInDatabase(oldEnglish, oldSpanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.english = englishInput;
+                dbRef.item.spanish = spanishInput;
+            }
+            
+            writeDataToTextarea();
+            renderCardView();
+            closeEditCardModal();
+            showToast("Flashcard updated successfully!");
+        }
+
+        function triggerCtxPin() {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            togglePinActiveCard(!activeItem.pinned);
+        }
+
+        // Pin Active Card Action
+        function togglePinActiveCard(checked) {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            activeItem.pinned = checked;
+
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.pinned = checked;
+            }
+
+            writeDataToTextarea();
+            renderCardView();
+            showToast(checked ? "Card pinned successfully." : "Card unpinned.");
+        }
+
+        function triggerCtxRetire() {
+            retireActiveCard();
+        }
+
+        function triggerCtxCopyAll() {
+            copyDatabaseText();
+        }
+
+        // Mastered milestone-based repetitions grading structure
+        function gradeCard(scoreValue) {
+            if (studySessionList.length === 0) return;
+            
+            pushStudyUndoState();
+
+            const activeItem = studySessionList[currentCardIndex];
+            
+            // Adjust repetitions milestone only for Score 5 and when cooldown has elapsed
+            if (scoreValue === 5) {
+                const oldScore = activeItem.score;
+                if (oldScore === 5) {
+                    if (canRate5Again(activeItem)) {
+                        activeItem.repetitions = (activeItem.repetitions || 1) + 1;
+                        activeItem.date = activeStudyDate;
+                        showToast(`Repetition count incremented to (${activeItem.repetitions})!`);
+                    } else {
+                        const currentRep = activeItem.repetitions || 1;
+                        let reqTime = "";
+                        if (currentRep === 1) reqTime = "1/4 of a month (7.5 days)";
+                        else if (currentRep === 2) reqTime = "1/4 of a month (7.5 days)";
+                        else if (currentRep === 3) reqTime = "half a month (15 days)";
+                        else reqTime = "a full month (30 days)";
+                        showToast(`Cooldown active. Next milestone requires at least ${reqTime}.`);
+                        return; // Block rating update and slide
+                    }
+                } else {
+                    activeItem.score = 5;
+                    activeItem.repetitions = 1;
+                    activeItem.date = activeStudyDate;
+                    showToast("Mastery achieved! Score 5 recorded.");
+                }
+            } else {
+                activeItem.score = scoreValue;
+                activeItem.repetitions = 1;
+                activeItem.date = activeStudyDate;
+            }
+            
+            // Sync with primary global database (Flashcards are perfectly normal everywhere else)
+            const dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.score = activeItem.score;
+                dbRef.item.repetitions = activeItem.repetitions;
+                dbRef.item.date = activeItem.date;
+            }
+            
+            writeDataToTextarea();
+
+            isNoteForceOpen = false;
+            resetCardFlipDirectly();
+
+            const currentPoolMode = document.getElementById('study-pool-select').value;
+            
+            if (currentPoolMode === 'infinite-worst' && activeItem.score === 5) {
+                const unfIndex = unfilteredStudySessionList.findIndex(i => i.id === activeItem.id);
+                if (unfIndex !== -1) {
+                    unfilteredStudySessionList.splice(unfIndex, 1);
+                }
+                showToast("Card completed and removed from Infinite Worst queue!");
+                applyFiltersToSession(false);
+                if (studySessionList.length === 0) {
+                    initializeStudySession(true);
+                }
+            } else if (currentPoolMode === 'infinite-best' && activeItem.score === 5 && !canRate5Again(activeItem)) {
+                const unfIndex = unfilteredStudySessionList.findIndex(i => i.id === activeItem.id);
+                if (unfIndex !== -1) {
+                    unfilteredStudySessionList.splice(unfIndex, 1);
+                }
+                applyFiltersToSession(false);
+                if (studySessionList.length === 0) {
+                    initializeStudySession(true);
+                }
+            } else {
+                // For normal modes, let applyFiltersToSession naturally filter out the card if hide-cooldown is enabled
+                const prevId = activeItem.id;
+                applyFiltersToSession(false);
+                
+                // If card wasn't filtered out, auto-advance for fluid deck sliding
+                if (studySessionList.length > 0) {
+                    const currentActiveCard = studySessionList[currentCardIndex];
+                    if (currentActiveCard && currentActiveCard.id === prevId) {
+                        nextCard();
+                    }
+                }
+            }
+        }
+
+        function createNewNote() {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            isNoteForceOpen = true;
+
+            activeItem.englishNote = "";
+            activeItem.spanishNote = "";
+            activeItem.isNotesUnified = false;
+            
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.englishNote = "";
+                dbRef.item.spanishNote = "";
+                dbRef.item.isNotesUnified = false;
+            }
+            
+            writeDataToTextarea();
+            renderCardView();
+            
+            setTimeout(() => {
+                const studySide = document.getElementById('study-side-select').value;
+                let targetTextareaId = 'english-note-textarea';
+                if (studySide === 'spanish' && !isCardFlipped) {
+                    targetTextareaId = 'spanish-note-textarea';
+                } else if (studySide === 'english' && isCardFlipped) {
+                    targetTextareaId = 'spanish-note-textarea';
+                }
+                const noteInput = document.getElementById(targetTextareaId);
+                if (noteInput) {
+                    noteInput.focus();
+                }
+            }, 50);
+        }
+
+        function toggleNoteUnification(checked) {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            if (checked) {
+                const engVal = (activeItem.englishNote || "").trim();
+                const espVal = (activeItem.spanishNote || "").trim();
+                
+                if (engVal !== "" && espVal !== "" && engVal !== espVal) {
+                    showToast("Cannot unify notes: Clean one side first before checking same-notes box.");
+                    document.getElementById('note-unify-checkbox').checked = false;
+                    return;
+                }
+                
+                activeItem.isNotesUnified = true;
+                if (engVal !== "" && espVal === "") {
+                    activeItem.spanishNote = engVal;
+                } else if (espVal !== "" && engVal === "") {
+                    activeItem.englishNote = espVal;
+                }
+            } else {
+                activeItem.isNotesUnified = false;
+            }
+
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.isNotesUnified = activeItem.isNotesUnified;
+                dbRef.item.englishNote = activeItem.englishNote;
+                dbRef.item.spanishNote = activeItem.spanishNote;
+            }
+
+            writeDataToTextarea();
+            renderCardView();
+            showToast(checked ? "Notes unified on both sides." : "Notes separated.");
+        }
+
+        function handleUnifiedNoteInput(val) {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            activeItem.englishNote = val;
+            activeItem.spanishNote = val;
+            
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.englishNote = val;
+                dbRef.item.spanishNote = val;
+            }
+            
+            writeDbSilently();
+        }
+
+        function handleEnglishNoteInput(val) {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            activeItem.englishNote = val;
+            
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.englishNote = val;
+            }
+            
+            writeDbSilently();
+        }
+
+        function handleSpanishNoteInput(val) {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            activeItem.spanishNote = val;
+            
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.spanishNote = val;
+            }
+            
+            writeDbSilently();
+        }
+
+        function writeDbSilently() {
+            let outputLines = [];
+            let themes = Object.keys(parsedDatabase);
+            
+            themes.forEach((themeName, index) => {
+                if (themeName !== "General" || parsedDatabase["General"].words.length > 0 || parsedDatabase["General"].retired.length > 0 || themes.length === 1) {
+                    outputLines.push("========");
+                    outputLines.push(themeName);
+                    outputLines.push("========");
+                    outputLines.push("");
+                }
+                
+                let themeData = parsedDatabase[themeName];
+                
+                outputLines.push("=== Words / Phrases ===");
+                themeData.words.forEach(item => {
+                    let scorePart = `${item.score}`;
+                    if (item.score === 5) {
+                        const repPart = item.repetitions > 1 ? ` (${item.repetitions})` : "";
+                        scorePart = `5${repPart}`;
+                    }
+                    const datePart = item.date ? ` | ${item.date}` : (item.pinned ? " | " : "");
+                    const pinnedPart = item.pinned ? " | pinned" : "";
+                    outputLines.push(`${item.english} / ${item.spanish} | ${scorePart}${datePart}${pinnedPart}`);
+                    writeItemNotes(outputLines, item);
+                });
+                outputLines.push("");
+
+                outputLines.push("=== Retired ===");
+                themeData.retired.forEach(item => {
+                    let scorePart = `${item.score}`;
+                    if (item.score === 5) {
+                        const repPart = item.repetitions > 1 ? ` (${item.repetitions})` : "";
+                        scorePart = `5${repPart}`;
+                    }
+                    const datePart = item.date ? ` | ${item.date}` : (item.pinned ? " | " : "");
+                    const pinnedPart = item.pinned ? " | pinned" : "";
+                    outputLines.push(`${item.english} / ${item.spanish} | ${scorePart}${datePart}${pinnedPart}`);
+                    writeItemNotes(outputLines, item);
+                });
+                
+                if (index < themes.length - 1) {
+                    outputLines.push("");
+                }
+            });
+            
+            const generatedText = outputLines.join('\n');
+            document.getElementById('database-textarea').value = generatedText;
+            localStorage.setItem('vocab_spanish_db', generatedText);
+            dbDirty = false;
+        }
+
+        function deleteActiveNote() {
+            if (studySessionList.length === 0) return;
+            const activeItem = studySessionList[currentCardIndex];
+            
+            isNoteForceOpen = false;
+
+            activeItem.englishNote = "";
+            activeItem.spanishNote = "";
+            activeItem.isNotesUnified = false;
+
+            let dbRef = findItemInDatabase(activeItem.english, activeItem.spanish, activeItem.themeName);
+            if (dbRef) {
+                dbRef.item.englishNote = "";
+                dbRef.item.spanishNote = "";
+                dbRef.item.isNotesUnified = false;
+            }
+            
+            writeDataToTextarea();
+            renderCardView();
+            showToast("Note deleted successfully.");
+        }
+
+        // Auto-rate unrated items to score 1 Utility function
+        function autoRateUnratedTo1() {
+            const currentVal = document.getElementById('database-textarea').value;
+            dbUndoHistory.push(currentVal);
+            if (dbUndoHistory.length > 50) dbUndoHistory.shift();
+            dbRedoHistory = [];
+            updateDbTextButtonsState();
+
+            syncStateFromTextarea();
+            
+            let count = 0;
+            for (let theme of Object.keys(parsedDatabase)) {
+                if (parsedDatabase[theme].words) {
+                    parsedDatabase[theme].words.forEach(item => {
+                        if (item.score === 0) {
+                            item.score = 1;
+                            item.repetitions = 1; 
+                            count++;
+                        }
+                    });
+                }
+            }
+            
+            if (count > 0) {
+                writeDataToTextarea();
+                showToast(`Successfully rated ${count} unrated items to Score 1!`);
+            } else {
+                showToast("No unrated items (Score 0) were found in active pools.");
+            }
+        }
+
+        // Overwrite full database text with clipboard contents
+        async function pasteAllDatabaseText() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim() !== "") {
+                    pushDbUndoState();
+                    document.getElementById('database-textarea').value = text;
+                    handleTextareaChange();
+                    showToast("Pasted clipboard contents into database!");
+                } else {
+                    showToast("Clipboard is empty or inaccessible.");
+                }
+            } catch (err) {
+                showPasteFallbackModal();
+            }
+        }
+
+        function showPasteFallbackModal() {
+            document.getElementById('paste-fallback-textarea').value = "";
+            document.getElementById('paste-fallback-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('paste-fallback-textarea').focus();
+            }, 50);
+        }
+
+        function closePasteFallbackModal() {
+            document.getElementById('paste-fallback-modal').classList.add('hidden');
+        }
+
+        function submitPasteFallback() {
+            const pastedText = document.getElementById('paste-fallback-textarea').value;
+            if (pastedText && pastedText.trim() !== "") {
+                pushDbUndoState();
+                document.getElementById('database-textarea').value = pastedText;
+                handleTextareaChange();
+                showToast("Overwrote database with pasted text!");
+                closePasteFallbackModal();
+            } else {
+                showToast("No text entered to overwrite database.");
+            }
+        }
+
+        // Global Pre-Flight DB stack register
+        function pushDbUndoState() {
+            const currentVal = document.getElementById('database-textarea').value;
+            dbUndoHistory.push(currentVal);
+            if (dbUndoHistory.length > 50) dbUndoHistory.shift();
+            dbRedoHistory = [];
+            updateDbTextButtonsState();
+        }
+
+        function pushStudyUndoState() {
+            const currentDbState = document.getElementById('database-textarea').value;
+            const currentPool = document.getElementById('study-pool-select').value;
+            const currentSessionListState = unfilteredStudySessionList.map(item => ({
+                english: item.english,
+                spanish: item.spanish,
+                themeName: item.themeName
+            }));
+
+            studyUndoHistory.push({
+                dbState: currentDbState,
+                cardIndex: currentCardIndex,
+                poolSelect: currentPool,
+                sessionItems: currentSessionListState
+            });
+            
+            if (studyUndoHistory.length > 50) studyUndoHistory.shift();
+            studyRedoHistory = [];
+            updateStudyButtonsState();
+        }
+
+        function restoreStudyState(entry) {
+            document.getElementById('database-textarea').value = entry.dbState;
+            document.getElementById('study-pool-select').value = entry.poolSelect;
+            
+            handleTextareaChange();
+            syncStateFromTextarea();
+            
+            unfilteredStudySessionList = entry.sessionItems.map(saved => {
+                const match = findItemInDatabase(saved.english, saved.spanish, saved.themeName);
+                return match ? match.item : { english: saved.english, spanish: saved.spanish, score: 0, repetitions: 1, date: "" };
+            });
+
+            resetCardFlipDirectly();
+            currentCardIndex = entry.cardIndex;
+            applyFiltersToSession(false);
+            updateStudyButtonsState();
+        }
+
+        function undo() {
+            if (studyUndoHistory.length === 0) return;
+            
+            const currentDbState = document.getElementById('database-textarea').value;
+            const currentPool = document.getElementById('study-pool-select').value;
+            const currentSessionListState = unfilteredStudySessionList.map(item => ({
+                english: item.english,
+                spanish: item.spanish,
+                themeName: item.themeName
+            }));
+
+            studyRedoHistory.push({
+                dbState: currentDbState,
+                cardIndex: currentCardIndex,
+                poolSelect: currentPool,
+                sessionItems: currentSessionListState
+            });
+            
+            const restoredState = studyUndoHistory.pop();
+            restoreStudyState(restoredState);
+            showToast("Rating change undone.");
+        }
+
+        function redo() {
+            if (studyRedoHistory.length === 0) return;
+            
+            const currentDbState = document.getElementById('database-textarea').value;
+            const currentPool = document.getElementById('study-pool-select').value;
+            const currentSessionListState = unfilteredStudySessionList.map(item => ({
+                english: item.english,
+                spanish: item.spanish,
+                themeName: item.themeName
+            }));
+
+            studyUndoHistory.push({
+                dbState: currentDbState,
+                cardIndex: currentCardIndex,
+                poolSelect: currentPool,
+                sessionItems: currentSessionListState
+            });
+            
+            const restoredState = studyRedoHistory.pop();
+            restoreStudyState(restoredState);
+            showToast("Rating change redone.");
+        }
+
+        function updateStudyButtonsState() {
+            const btnUndo = document.getElementById('btn-undo');
+            const btnRedo = document.getElementById('btn-redo');
+            
+            btnUndo.disabled = (studyUndoHistory.length === 0);
+            btnRedo.disabled = (studyRedoHistory.length === 0);
+
+            if (studyUndoHistory.length > 0) {
+                btnUndo.classList.add('text-indigo-400'); btnUndo.classList.remove('text-slate-500');
+            } else {
+                btnUndo.classList.remove('text-indigo-400'); btnUndo.classList.add('text-slate-500');
+            }
+
+            if (studyRedoHistory.length > 0) {
+                btnRedo.classList.add('text-indigo-400'); btnRedo.classList.remove('text-slate-500');
+            } else {
+                btnRedo.classList.remove('text-indigo-400'); btnRedo.classList.add('text-slate-500');
+            }
+        }
+
+        // Optimized text area mutation tracking prevents history stack duplication
+        let dbStateTimeout = null;
+        function handleTextareaChange() {
+            dbDirty = true;
+            syncStateFromTextarea();
+            localStorage.setItem('vocab_spanish_db', document.getElementById('database-textarea').value);
+            
+            const currentVal = document.getElementById('database-textarea').value;
+            const lengthDiff = Math.abs(currentVal.length - lastCommittedValue.length);
+            
+            if (lengthDiff > 10) {
+                if (lastCommittedValue !== currentVal) {
+                    dbUndoHistory.push(lastCommittedValue);
+                    if (dbUndoHistory.length > 50) dbUndoHistory.shift();
+                    dbRedoHistory = []; 
+                    lastCommittedValue = currentVal;
+                    updateDbTextButtonsState();
+                }
+                clearTimeout(dbStateTimeout);
+            } else {
+                clearTimeout(dbStateTimeout);
+                dbStateTimeout = setTimeout(() => {
+                    if (lastCommittedValue !== currentVal) {
+                        dbUndoHistory.push(lastCommittedValue);
+                        if (dbUndoHistory.length > 50) dbUndoHistory.shift();
+                        dbRedoHistory = []; 
+                        lastCommittedValue = currentVal;
+                        updateDbTextButtonsState();
+                    }
+                }, 1000);
+            }
+        }
+
+        function handleTextareaFocus() {
+            const currentVal = document.getElementById('database-textarea').value;
+            if (currentVal !== lastCommittedValue) {
+                lastCommittedValue = currentVal;
+            }
+        }
+
+        function handleTextareaBlur() {
+            captureDbTextStateImmediate();
+        }
+
+        function captureDbTextStateImmediate() {
+            const currentVal = document.getElementById('database-textarea').value;
+            if (currentVal !== lastCommittedValue) {
+                dbUndoHistory.push(lastCommittedValue);
+                if (dbUndoHistory.length > 50) dbUndoHistory.shift();
+                dbRedoHistory = [];
+                lastCommittedValue = currentVal;
+                updateDbTextButtonsState();
+            }
+        }
+
+        function dbUndo() {
+            if (dbUndoHistory.length === 0) return;
+            const currentVal = document.getElementById('database-textarea').value;
+            dbRedoHistory.push(currentVal);
+
+            const lastState = dbUndoHistory.pop();
+            document.getElementById('database-textarea').value = lastState;
+            lastCommittedValue = lastState;
+            
+            dbDirty = true;
+            syncStateFromTextarea();
+            localStorage.setItem('vocab_spanish_db', lastState);
+            updateDbTextButtonsState();
+            showToast("Database text undo complete.");
+        }
+
+        function dbRedo() {
+            if (dbRedoHistory.length === 0) return;
+            const currentVal = document.getElementById('database-textarea').value;
+            dbUndoHistory.push(currentVal);
+
+            const nextState = dbRedoHistory.pop();
+            document.getElementById('database-textarea').value = nextState;
+            lastCommittedValue = nextState;
+
+            dbDirty = true;
+            syncStateFromTextarea();
+            localStorage.setItem('vocab_spanish_db', nextState);
+            updateDbTextButtonsState();
+            showToast("Database text redo complete.");
+        }
+
+        function updateDbTextButtonsState() {
+            const btnUndo = document.getElementById('btn-db-undo');
+            const btnRedo = document.getElementById('btn-db-redo');
+            
+            btnUndo.disabled = (dbUndoHistory.length === 0);
+            btnRedo.disabled = (dbRedoHistory.length === 0);
+
+            if (dbUndoHistory.length > 0) {
+                btnUndo.classList.add('text-indigo-400'); btnUndo.classList.remove('text-slate-500');
+            } else {
+                btnUndo.classList.remove('text-indigo-400'); btnUndo.classList.add('text-slate-500');
+            }
+
+            if (dbRedoHistory.length > 0) {
+                btnRedo.classList.add('text-indigo-400'); btnRedo.classList.remove('text-slate-500');
+            } else {
+                btnRedo.classList.remove('text-indigo-400'); btnRedo.classList.add('text-slate-500');
+            }
+        }
+
+        function retireActiveCard() {
+            if (studySessionList.length === 0) return;
+            
+            pushStudyUndoState();
+
+            const itemToRetire = studySessionList[currentCardIndex];
+            studySessionList.splice(currentCardIndex, 1);
+
+            // Keep unfiltered session list clean
+            const unfIndex = unfilteredStudySessionList.findIndex(i => i.id === itemToRetire.id);
+            if (unfIndex !== -1) {
+                unfilteredStudySessionList.splice(unfIndex, 1);
+            }
+
+            const dbRef = findItemInDatabase(itemToRetire.english, itemToRetire.spanish, itemToRetire.themeName);
+            if (dbRef) {
+                const index = parsedDatabase[dbRef.themeName][dbRef.category].findIndex(i => i.english === itemToRetire.english && i.spanish === itemToRetire.spanish);
+                if (index !== -1) {
+                    parsedDatabase[dbRef.themeName][dbRef.category].splice(index, 1);
+                }
+                
+                // Push retired instance
+                parsedDatabase[dbRef.themeName].retired.push({
+                    english: itemToRetire.english,
+                    spanish: itemToRetire.spanish,
+                    score: itemToRetire.score,
+                    repetitions: itemToRetire.repetitions || 1,
+                    date: activeStudyDate,
+                    pinned: false,
+                    englishNote: itemToRetire.englishNote || "",
+                    spanishNote: itemToRetire.spanishNote || "",
+                    isNotesUnified: itemToRetire.isNotesUnified ?? false
+                });
+            }
+
+            writeDataToTextarea();
+            showToast(`"${itemToRetire.english}" moved to Retired section (Pin lost).`);
+
+            applyFiltersToSession(false);
+        }
+
+        function renderRetiredTab() {
+            const tbody = document.getElementById('retired-list-tbody');
+            const emptyState = document.getElementById('retired-empty-state');
+            tbody.innerHTML = '';
+
+            const retiredItems = getSelectedItems('retired');
+
+            if (retiredItems.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            retiredItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900 border-b border-slate-850/60 transition text-xs sm:text-sm";
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-400 font-sans font-semibold text-left">${item.themeName}</td>
+                    <td class="p-3 font-semibold text-slate-100 text-left">${item.english} <span class="text-slate-500">/</span> <span class="text-indigo-400 font-bold">${item.spanish}</span></td>
+                    <td class="p-3 font-mono text-slate-400 whitespace-nowrap text-left">${item.date || 'Unspecified'}</td>
+                    <td class="p-3 text-center">
+                        <span class="text-[10px] font-mono bg-slate-900 border border-slate-700 px-2 py-0.5 rounded text-amber-400 font-bold">Score ${item.score}</span>
+                    </td>
+                    <td class="p-3 text-right flex justify-end gap-2 font-sans">
+                        <button onclick="moveRetiredItem('${item.themeName}', ${index}, 'words')" class="flex items-center gap-1 px-3 py-1 bg-indigo-900 hover:bg-indigo-800 border border-indigo-900/40 text-indigo-300 rounded-lg text-xs transition">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Restore to Active
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function moveRetiredItem(themeName, index, targetList) {
+            pushRetiredUndoState();
+
+            const item = parsedDatabase[themeName].retired[index];
+            parsedDatabase[themeName].retired.splice(index, 1);
+
+            parsedDatabase[themeName][targetList].push({
+                english: item.english,
+                spanish: item.spanish,
+                score: item.score,
+                repetitions: item.repetitions || 1,
+                date: activeStudyDate, 
+                pinned: false, // automatically lose pin on restoration
+                englishNote: item.englishNote || "",
+                spanishNote: item.spanishNote || "",
+                isNotesUnified: item.isNotesUnified ?? false
+            });
+
+            writeDataToTextarea();
+            renderRetiredTab();
+            showToast(`Moved "${item.english}" back to active vocabulary.`);
+        }
+
+        function pushRetiredUndoState() {
+            const currentDbState = document.getElementById('database-textarea').value;
+            retiredUndoHistory.push(currentDbState);
+
+            if (retiredUndoHistory.length > 50) retiredUndoHistory.shift();
+            retiredRedoHistory = []; 
+            updateRetiredButtonsState();
+        }
+
+        function retiredUndo() {
+            if (retiredUndoHistory.length === 0) return;
+            const currentDbState = document.getElementById('database-textarea').value;
+            retiredRedoHistory.push(currentDbState);
+
+            const lastState = retiredUndoHistory.pop();
+            document.getElementById('database-textarea').value = lastState;
+
+            handleTextareaChange();
+            syncStateFromTextarea();
+            renderRetiredTab();
+            updateRetiredButtonsState();
+            showToast("Retired item movement undone.");
+        }
+
+        function retiredRedo() {
+            if (retiredRedoHistory.length === 0) return;
+            const currentDbState = document.getElementById('database-textarea').value;
+            retiredUndoHistory.push(currentDbState);
+
+            const nextState = retiredRedoHistory.pop();
+            document.getElementById('database-textarea').value = nextState;
+
+            handleTextareaChange();
+            syncStateFromTextarea();
+            renderRetiredTab();
+            updateRetiredButtonsState();
+            showToast("Retired item movement redone.");
+        }
+
+        function updateRetiredButtonsState() {
+            const btnUndo = document.getElementById('btn-retired-undo');
+            const btnRedo = document.getElementById('btn-retired-redo');
+            
+            btnUndo.disabled = (retiredUndoHistory.length === 0);
+            btnRedo.disabled = (retiredRedoHistory.length === 0);
+
+            if (retiredUndoHistory.length > 0) {
+                btnUndo.classList.add('text-indigo-400'); btnUndo.classList.remove('text-slate-500');
+            } else {
+                btnUndo.classList.remove('text-indigo-400'); btnUndo.classList.add('text-slate-500');
+            }
+
+            if (retiredRedoHistory.length > 0) {
+                btnRedo.classList.add('text-indigo-400'); btnRedo.classList.remove('text-slate-500');
+            } else {
+                btnRedo.classList.remove('text-indigo-400'); btnRedo.classList.add('text-slate-500');
+            }
+        }
+
+        function openStudyInfoModal() {
+            const modal = document.getElementById('study-info-modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeStudyInfoModal() {
+            const modal = document.getElementById('study-info-modal');
+            modal.classList.add('hidden');
+        }
+
+        function openThemesModal() {
+            syncStateFromTextarea();
+            const container = document.getElementById('themes-checklist-container');
+            container.innerHTML = '';
+            
+            let themes = Object.keys(parsedDatabase);
+            themes.forEach(theme => {
+                const isChecked = selectedThemes.has(theme);
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 hover:bg-slate-800 rounded-lg transition cursor-pointer select-none";
+                div.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const cb = div.querySelector('input');
+                        cb.checked = !cb.checked;
+                    }
+                };
+                div.innerHTML = `
+                    <span class="text-xs font-semibold text-slate-200">${theme}</span>
+                    <input type="checkbox" data-theme="${theme}" ${isChecked ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer" />
+                `;
+                container.appendChild(div);
+            });
+            
+            const modal = document.getElementById('themes-modal');
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function closeThemesModal() {
+            const modal = document.getElementById('themes-modal');
+            modal.classList.add('hidden');
+        }
+        
+        function toggleAllThemes(select) {
+            const checkboxes = document.querySelectorAll('#themes-checklist-container input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = select);
+        }
+        
+        function applyThemeSelections() {
+            const checkboxes = document.querySelectorAll('#themes-checklist-container input[type="checkbox"]');
+            selectedThemes.clear();
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selectedThemes.add(cb.getAttribute('data-theme'));
+                }
+            });
+            
+            if (selectedThemes.size === 0) {
+                let firstTheme = Object.keys(parsedDatabase)[0] || "General";
+                selectedThemes.add(firstTheme);
+                showToast(`Auto-selected theme "${firstTheme}" to prevent blank viewports.`);
+            }
+            
+            dbDirty = true;
+            closeThemesModal();
+            showToast("Theme filters applied successfully!");
+            
+            if (currentTab === 'study') {
+                initializeStudySession(true);
+            } else if (currentTab === 'retired') {
+                renderRetiredTab();
+            }
+            syncStateFromTextarea();
+        }
+
+        function getDaysDifference(dateStr, baseDateStr) {
+            if (!dateStr) return Infinity;
+            try {
+                const d1 = new Date(baseDateStr);
+                const d2 = new Date(dateStr);
+                if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return Infinity;
+                const diffTime = d1 - d2;
+                return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            } catch (e) {
+                return Infinity;
+            }
+        }
+
+        // Overview Modal functions
+        function openOverviewModal() {
+            syncStateFromTextarea();
+
+            let scoreCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            let repCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; 
+            let recencyCounts = { today: 0, week: 0, month: 0, older: 0 };
+
+            const activeItems = getSelectedItems('words'); 
+
+            activeItems.forEach(item => {
+                const scoreInt = parseInt(item.score, 10);
+                if (scoreCounts[scoreInt] !== undefined) {
+                    scoreCounts[scoreInt]++;
+                }
+
+                if (scoreInt === 5) {
+                    const reps = parseInt(item.repetitions, 10) || 1;
+                    if (reps === 1) repCounts[1]++;
+                    else if (reps === 2) repCounts[2]++;
+                    else if (reps === 3) repCounts[3]++;
+                    else if (reps === 4) repCounts[4]++;
+                    else if (reps >= 5) repCounts[5]++;
+                }
+
+                const daysDiff = getDaysDifference(item.date, activeStudyDate);
+                if (daysDiff === 0) {
+                    recencyCounts.today++;
+                } else if (daysDiff > 0 && daysDiff <= 7) {
+                    recencyCounts.week++;
+                } else if (daysDiff > 7 && daysDiff <= 30) {
+                    recencyCounts.month++;
+                } else {
+                    recencyCounts.older++;
+                }
+            });
+
+            let totalFcs = 0;
+            for (let theme of Object.keys(parsedDatabase)) {
+                totalFcs += parsedDatabase[theme].words.length;
+            }
+            document.getElementById('stat-total-fcs').innerText = totalFcs;
+
+            document.getElementById('stat-score-1').innerText = scoreCounts[1];
+            document.getElementById('stat-score-2').innerText = scoreCounts[2];
+            document.getElementById('stat-score-3').innerText = scoreCounts[3];
+            document.getElementById('stat-score-4').innerText = scoreCounts[4];
+            document.getElementById('stat-score-5').innerText = scoreCounts[5];
+
+            document.getElementById('stat-rep-1').innerText = repCounts[1];
+            document.getElementById('stat-rep-2').innerText = repCounts[2];
+            document.getElementById('stat-rep-3').innerText = repCounts[3];
+            document.getElementById('stat-rep-4').innerText = repCounts[4];
+            document.getElementById('stat-rep-5').innerText = repCounts[5];
+
+            document.getElementById('stat-recency-today').innerText = recencyCounts.today;
+            document.getElementById('stat-recency-week').innerText = recencyCounts.week;
+            document.getElementById('stat-recency-month').innerText = recencyCounts.month;
+            document.getElementById('stat-recency-older').innerText = recencyCounts.older;
+
+            updateStatFilterVisuals();
+
+            document.getElementById('pin-filter-enabled').checked = pinFilterEnabled;
+            const toggleBtn = document.getElementById('pin-filter-toggle-btn');
+            toggleBtn.disabled = !pinFilterEnabled;
+            if (pinFilterMode === 'only') {
+                toggleBtn.innerText = 'Only Pinned FCs';
+            } else {
+                toggleBtn.innerText = 'Exclude Pinned FCs';
+            }
+
+            const modal = document.getElementById('overview-modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeOverviewModal() {
+            const modal = document.getElementById('overview-modal');
+            modal.classList.add('hidden');
+            resetPinSelectedButton();
+        }
+
+        function toggleStatFilter(type, value) {
+            if (type === 'score') {
+                if (activeFilters.scores.has(value)) {
+                    activeFilters.scores.delete(value);
+                } else {
+                    activeFilters.scores.add(value);
+                }
+            } else if (type === 'rep') {
+                if (activeFilters.reps.has(value)) {
+                    activeFilters.reps.delete(value);
+                } else {
+                    activeFilters.reps.add(value);
+                }
+            } else if (type === 'recency') {
+                if (activeFilters.recencies.has(value)) {
+                    activeFilters.recencies.delete(value);
+                } else {
+                    activeFilters.recencies.add(value);
+                }
+            }
+            updateStatFilterVisuals();
+        }
+
+        function updateStatFilterVisuals() {
+            for (let s = 1; s <= 5; s++) {
+                const element = document.getElementById(`filter-score-${s}`);
+                if (!element) continue;
+                if (activeFilters.scores.has(s)) {
+                    element.className = "cursor-pointer bg-indigo-900 border-2 border-indigo-500 p-2 rounded-xl scale-102 ring-2 ring-indigo-500/50 select-none";
+                } else {
+                    const originalBg = s === 1 ? 'bg-rose-900/40' : s === 2 ? 'bg-orange-900/40' : s === 3 ? 'bg-amber-900/30' : s === 4 ? 'bg-yellow-900/20' : 'bg-emerald-900/40';
+                    const originalBorder = s === 1 ? 'border-rose-900/40' : s === 2 ? 'border-orange-900/40' : s === 3 ? 'border-amber-900/40' : s === 4 ? 'border-yellow-900/40' : 'border-emerald-900/40';
+                    element.className = `cursor-pointer ${originalBg} hover:bg-slate-900/60 border ${originalBorder} p-2 rounded-xl transition duration-150 select-none`;
+                }
+            }
+
+            for (let r = 1; r <= 5; r++) {
+                const element = document.getElementById(`filter-rep-${r}`);
+                if (!element) continue;
+                if (activeFilters.reps.has(r)) {
+                    element.className = "cursor-pointer bg-indigo-900 border-2 border-indigo-500 p-2 rounded-xl scale-102 ring-2 ring-indigo-500/50 select-none";
+                } else {
+                    const originalBg = r === 1 ? 'bg-rose-900/40' : r === 2 ? 'bg-orange-900/40' : r === 3 ? 'bg-amber-900/30' : r === 4 ? 'bg-yellow-900/20' : 'bg-emerald-900/40';
+                    const originalBorder = r === 1 ? 'border-rose-900/40' : r === 2 ? 'border-orange-900/40' : r === 3 ? 'border-amber-900/40' : r === 4 ? 'border-yellow-900/40' : 'border-emerald-900/40';
+                    element.className = `cursor-pointer ${originalBg} hover:bg-slate-900/60 border ${originalBorder} p-2 rounded-xl transition duration-150 select-none`;
+                }
+            }
+
+            const textGroups = ['today', 'week', 'month', 'older'];
+            textGroups.forEach(r => {
+                const element = document.getElementById(`filter-recency-${r}`);
+                if (!element) return;
+                if (activeFilters.recencies.has(r)) {
+                    element.className = "cursor-pointer flex justify-between items-center bg-indigo-900/80 px-3 py-2 rounded-xl border-2 border-indigo-500 scale-102 ring-2 ring-indigo-500/50 select-none";
+                } else {
+                    element.className = "cursor-pointer flex justify-between items-center bg-slate-900/60 hover:bg-slate-900 px-3 py-2 rounded-xl border border-slate-750 transition duration-150 select-none";
+                }
+            });
+        }
+
+        function getFilteredStatsItems(ignorePin = true) {
+            const activeItems = getSelectedItems('words'); 
+            const matched = [];
+
+            const hasScoreFilter = activeFilters.scores.size > 0;
+            const hasRepFilter = activeFilters.reps.size > 0;
+            const hasRecencyFilter = activeFilters.recencies.size > 0;
+
+            if (!hasScoreFilter && !hasRepFilter && !hasRecencyFilter) {
+                return [];
+            }
+
+            activeItems.forEach(item => {
+                let matchesScore = false;
+                if (hasScoreFilter) {
+                    const scoreInt = parseInt(item.score, 10);
+                    if (activeFilters.scores.has(scoreInt)) {
+                        matchesScore = true;
+                    }
+                }
+
+                let matchesRep = false;
+                if (hasRepFilter && parseInt(item.score, 10) === 5) {
+                    const reps = parseInt(item.repetitions, 10) || 1;
+                    const repGroup = reps >= 5 ? 5 : reps;
+                    if (activeFilters.reps.has(repGroup)) {
+                        matchesRep = true;
+                    }
+                }
+
+                let matchesRecency = false;
+                if (hasRecencyFilter) {
+                    const daysDiff = getDaysDifference(item.date, activeStudyDate);
+                    let recencyGroup = 'older';
+                    if (daysDiff === 0) {
+                        recencyGroup = 'today';
+                    } else if (daysDiff > 0 && daysDiff <= 7) {
+                        recencyGroup = 'week';
+                    } else if (daysDiff > 7 && daysDiff <= 30) {
+                        recencyGroup = 'month';
+                    }
+
+                    if (activeFilters.recencies.has(recencyGroup)) {
+                        matchesRecency = true;
+                    }
+                }
+
+                if ((hasScoreFilter && matchesScore) || (hasRepFilter && matchesRep) || (hasRecencyFilter && matchesRecency)) {
+                    matched.push(item);
+                }
+            });
+
+            return matched;
+        }
+
+        function studySelectedStats() {
+            const hasScoreFilter = activeFilters.scores.size > 0;
+            const hasRepFilter = activeFilters.reps.size > 0;
+            const hasRecencyFilter = activeFilters.recencies.size > 0;
+
+            let finalMatches = [];
+
+            if (!hasScoreFilter && !hasRepFilter && !hasRecencyFilter) {
+                if (pinFilterEnabled) {
+                    if (pinFilterMode === 'only') {
+                        document.getElementById('study-pool-select').value = "pinned";
+                        initializeStudySession(true);
+                        closeOverviewModal();
+                        switchTab('study');
+                        showToast("Switched to Study Pinned FCs mode.");
+                        return;
+                    } else if (pinFilterMode === 'exclude') {
+                        const activePool = getSelectedItems('words');
+                        finalMatches = activePool.filter(item => !item.pinned);
+                    }
+                } else {
+                    showToast("Please select parameters to filter, or enable Pin Filters.");
+                    return;
+                }
+            } else {
+                const matches = getFilteredStatsItems(true); 
+                if (matches.length === 0) {
+                    showToast("Please select parameters that match at least one active card.");
+                    return;
+                }
+
+                if (pinFilterEnabled) {
+                    if (pinFilterMode === 'only') {
+                        finalMatches = matches.filter(item => item.pinned);
+                    } else if (pinFilterMode === 'exclude') {
+                        finalMatches = matches.filter(item => !item.pinned);
+                    }
+                } else {
+                    finalMatches = [...matches];
+                }
+            }
+
+            if (finalMatches.length === 0) {
+                showToast("No active flashcards match your combined stats and pin filters.");
+                return;
+            }
+
+            const limitVal = parseInt(document.getElementById('stats-pool-limit').value, 10);
+            if (!isNaN(limitVal) && limitVal > 0) {
+                finalMatches = shuffleArray(finalMatches).slice(0, limitVal);
+            }
+
+            customSelectedStatsItems = finalMatches;
+            
+            const customOpt = document.getElementById('custom-pool-option');
+            customOpt.classList.remove('hidden');
+            customOpt.innerText = `Custom Stats Filter (${finalMatches.length} items)`;
+            document.getElementById('study-pool-select').value = "custom";
+
+            closeOverviewModal();
+            switchTab('study');
+            
+            initializeStudySession(true);
+            showToast(`Loading study set: ${studySessionList.length} matched cards.`);
+        }
+
+        // Accidental Double Click confirmations
+        function pinSelectedStats() {
+            const now = Date.now();
+            const btn = document.getElementById('btn-pin-selected');
+            if (!btn) return;
+
+            if (!pinSelectedConfirmState) {
+                pinSelectedConfirmState = true;
+                pinSelectedLastClickTime = now;
+                btn.innerHTML = `<i data-lucide="help-circle" class="w-3.5 h-3.5 text-white animate-pulse"></i> Confirm?`;
+                btn.className = "bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow-md";
+                lucide.createIcons();
+                
+                pinSelectedConfirmTimeout = setTimeout(() => {
+                    resetPinSelectedButton();
+                }, 4000);
+                return;
+            }
+
+            if (now - pinSelectedLastClickTime < 500) {
+                return; 
+            }
+
+            resetPinSelectedButton();
+            executePinSelected();
+        }
+
+        function resetPinSelectedButton() {
+            const btn = document.getElementById('btn-pin-selected');
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="pin" class="w-3.5 h-3.5 text-amber-200"></i> Pin Selected`;
+                btn.className = "bg-amber-600 hover:bg-amber-550 text-white font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow-md";
+                lucide.createIcons();
+            }
+            pinSelectedConfirmState = false;
+            if (pinSelectedConfirmTimeout) {
+                clearTimeout(pinSelectedConfirmTimeout);
+                pinSelectedConfirmTimeout = null;
+            }
+        }
+
+        function executePinSelected() {
+            const matches = getFilteredStatsItems(true); 
+            if (matches.length === 0) {
+                showToast("Please select parameters that match at least one active card.");
+                return;
+            }
+
+            pushDbUndoState();
+
+            let count = 0;
+            matches.forEach(item => {
+                const dbRef = findItemInDatabase(item.english, item.spanish, item.themeName);
+                if (dbRef && !dbRef.item.pinned) {
+                    dbRef.item.pinned = true;
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                writeDataToTextarea();
+                showToast(`Successfully pinned ${count} filtered cards!`);
+                openOverviewModal(); 
+            } else {
+                showToast("All matched cards are already pinned.");
+            }
+        }
+
+        // Two-step double-click confirm safeguards for Pin All Previewed
+        function pinAllPreviewed() {
+            const now = Date.now();
+            const btn = document.getElementById('btn-pin-all');
+            if (!btn) return;
+
+            if (!pinAllConfirmState) {
+                pinAllConfirmState = true;
+                pinAllLastClickTime = now;
+                btn.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4 text-white animate-pulse font-bold"></i> Confirm?`;
+                btn.className = "flex-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm font-sans";
+                lucide.createIcons();
+
+                pinAllConfirmTimeout = setTimeout(() => {
+                    resetPinAllButton();
+                }, 4000);
+                return;
+            }
+
+            if (now - pinAllLastClickTime < 500) {
+                return;
+            }
+
+            resetPinAllButton();
+            executePinAll();
+        }
+
+        function resetPinAllButton() {
+            const btn = document.getElementById('btn-pin-all');
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="pin" class="w-4 h-4"></i> Pin All`;
+                btn.className = "flex-1 bg-amber-600 hover:bg-amber-550 text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm font-sans";
+                lucide.createIcons();
+            }
+            pinAllConfirmState = false;
+            if (pinAllConfirmTimeout) {
+                clearTimeout(pinAllConfirmTimeout);
+                pinAllConfirmTimeout = null;
+            }
+        }
+
+        function executePinAll() {
+            const matches = getFilteredStatsItems(true); 
+            if (matches.length === 0) {
+                showToast("No matched items to pin.");
+                return;
+            }
+
+            pushDbUndoState();
+
+            let count = 0;
+            matches.forEach(item => {
+                const dbRef = findItemInDatabase(item.english, item.spanish, item.themeName);
+                if (dbRef && !dbRef.item.pinned) {
+                    dbRef.item.pinned = true;
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                writeDataToTextarea();
+                showToast(`Successfully pinned all ${count} matching cards!`);
+                closePreviewFilteredModal();
+                openOverviewModal(); 
+            } else {
+                showToast("All matching cards are already pinned.");
+            }
+        }
+
+        // Preview Filter code renders
+        function viewSelectedStatsText() {
+            const matches = getFilteredStatsItems(true); 
+            if (matches.length === 0) {
+                showToast("Please select parameters that match at least one active card.");
+                return;
+            }
+
+            const themedOutput = {};
+            matches.forEach(item => {
+                if (!themedOutput[item.themeName]) {
+                    themedOutput[item.themeName] = { words: [] };
+                }
+                themedOutput[item.themeName].words.push(item);
+            });
+
+            let previewText = "";
+            const themesArr = Object.keys(themedOutput);
+
+            themesArr.forEach((themeName, idx) => {
+                previewText += `========\n${themeName}\n========\n\n`;
+                
+                previewText += "=== Words / Phrases ===\n";
+                themedOutput[themeName].words.forEach(item => {
+                    let scorePart = `${item.score}`;
+                    if (item.score === 5) {
+                        const repPart = item.repetitions > 1 ? ` (${item.repetitions})` : "";
+                        scorePart = `5${repPart}`;
+                    }
+                    const datePart = item.date ? ` | ${item.date}` : (item.pinned ? " | " : "");
+                    const pinnedPart = item.pinned ? " | pinned" : "";
+                    previewText += `${item.english} / ${item.spanish} | ${scorePart}${datePart}${pinnedPart}\n`;
+                    if (item.isNotesUnified) {
+                        if (item.englishNote) previewText += `English AND Spanish note: ${item.englishNote}\n`;
+                    } else {
+                        if (item.englishNote) previewText += `English note: ${item.englishNote}\n`;
+                        if (item.spanishNote) previewText += `Spanish note: ${item.spanishNote}\n`;
+                    }
+                });
+
+                previewText += "\n=== Retired ===\n";
+                if (idx < themesArr.length - 1) {
+                    previewText += "\n";
+                }
+            });
+
+            let miniScores = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            let miniRecencies = { today: 0, week: 0, month: 0, older: 0 };
+            
+            matches.forEach(item => {
+                const scoreInt = parseInt(item.score, 10);
+                if (miniScores[scoreInt] !== undefined) miniScores[scoreInt]++;
+                
+                const daysDiff = getDaysDifference(item.date, activeStudyDate);
+                if (daysDiff === 0) {
+                    miniRecencies.today++;
+                } else if (daysDiff > 0 && daysDiff <= 7) {
+                    miniRecencies.week++;
+                } else if (daysDiff > 7 && daysDiff <= 30) {
+                    miniRecencies.month++;
+                } else {
+                    miniRecencies.older++;
+                }
+            });
+
+            for (let s = 1; s <= 5; s++) {
+                document.getElementById(`mini-score-${s}`).innerText = miniScores[s];
+            }
+            document.getElementById('mini-recency-today').innerText = miniRecencies.today;
+            document.getElementById('mini-recency-week').innerText = miniRecencies.week;
+            document.getElementById('mini-recency-month').innerText = miniRecencies.month;
+            document.getElementById('mini-recency-older').innerText = miniRecencies.older;
+
+            document.getElementById('preview-filtered-textarea').value = previewText;
+            
+            const pModal = document.getElementById('preview-filtered-modal');
+            pModal.classList.remove('hidden');
+            resetPinAllButton();
+        }
+
+        function closePreviewFilteredModal() {
+            document.getElementById('preview-filtered-modal').classList.add('hidden');
+            resetPinAllButton();
+        }
+
+        function copyPreviewFilteredText() {
+            const textarea = document.getElementById('preview-filtered-textarea');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("Filtered database sub-selection copied!");
+        }
+
+        function clearDatabaseText() {
+            captureDbTextStateImmediate();
+            document.getElementById('database-textarea').value = "========\nGeneral\n========\n\n=== Words / Phrases ===\n\n=== Retired ===";
+            handleTextareaChange();
+            showToast('Database content wiped.');
+        }
+
+        function copyDatabaseText() {
+            const textarea = document.getElementById('database-textarea');
+            textarea.select();
+            document.execCommand('copy');
+            showToast('Full database copied to clipboard!');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            
+            toast.classList.remove('hidden');
+            toast.offsetHeight; 
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 2500);
+        }
+
+        function shuffleArray(array) {
+            let m = array.length, t, i;
+            while (m) {
+                i = Math.floor(Math.random() * m--);
+                t = array[m];
+                array[m] = array[i];
+                array[i] = t;
+            }
+            return array;
+        }
+
+        // Go To Theme Navigation dropdown generator
+        function toggleThemeNavDropdown() {
+            const dropdown = document.getElementById('theme-nav-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function renderThemeNavDropdown() {
+            const dropdown = document.getElementById('theme-nav-dropdown');
+            dropdown.innerHTML = '';
+            
+            const themes = Object.keys(parsedDatabase);
+            if (themes.length === 0) {
+                dropdown.innerHTML = '<div class="text-xs text-slate-500 px-4 py-2 bg-slate-900 font-sans">No themes loaded</div>';
+                return;
+            }
+
+            themes.forEach(theme => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left px-4 py-2 hover:bg-slate-800 text-xs text-slate-200 transition font-medium truncate font-sans";
+                btn.onclick = () => {
+                    dropdown.classList.add('hidden');
+                    scrollToTheme(theme);
+                };
+                btn.textContent = theme;
+                dropdown.appendChild(btn);
+            });
+        }
+
+        function scrollToTheme(themeName) {
+            const textarea = document.getElementById('database-textarea');
+            if (!textarea) return;
+
+            const text = textarea.value;
+            const escapedTheme = themeName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(`=======\\r?\\n${escapedTheme}\\r?\\n=======`, 'i');
+            const match = text.match(regex);
+
+            if (match) {
+                const startIdx = match.index;
+                const endIdx = startIdx + match[0].length;
+                
+                textarea.focus();
+                textarea.setSelectionRange(startIdx, endIdx);
+
+                const linesBefore = text.substring(0, startIdx).split('\n').length;
+                const totalLines = text.split('\n').length;
+                const lineHeight = textarea.scrollHeight / totalLines;
+                textarea.scrollTop = Math.max(0, (linesBefore * lineHeight) - 50);
+
+                setTimeout(() => {
+                    textarea.setSelectionRange(endIdx, endIdx);
+                }, 1000);
+                showToast(`Scrolled to theme: ${themeName}`);
+            } else {
+                showToast(`Could not find theme: ${themeName}`);
+            }
+        }
+
+        // Duplicate Analyzer & dismiss handlers using Sørensen-Dice similarity coefficient
+        function toggleDuplicateFinder() {
+            const sidebar = document.getElementById('duplicates-sidebar');
+            sidebar.classList.toggle('hidden');
+            if (!sidebar.classList.contains('hidden')) {
+                refreshDuplicates();
+            }
+        }
+
+        function refreshDuplicates() {
+            const container = document.getElementById('duplicates-list-container');
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 text-slate-400 gap-2.5 font-sans text-xs h-full">
+                    <div class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="font-semibold text-slate-300">Searching duplicates...</span>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                analyzeNearDuplicates();
+            }, 60);
+        }
+
+        function getBigrams(str) {
+            const bigrams = new Set();
+            for (let i = 0; i < str.length - 1; i++) {
+                bigrams.add(str.substring(i, i + 2));
+            }
+            return bigrams;
+        }
+
+        function getDiceSimilarity(str1, str2) {
+            str1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
+            str2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (str1 === str2) return 1.0;
+            if (str1.length < 2 || str2.length < 2) return 0.0;
+
+            const bigrams1 = getBigrams(str1);
+            const bigrams2 = getBigrams(str2);
+            let intersection = 0;
+            for (const val of bigrams1) {
+                if (bigrams2.has(val)) intersection++;
+            }
+            return (2.0 * intersection) / (bigrams1.size + bigrams2.size);
+        }
+
+        function analyzeNearDuplicates() {
+            const container = document.getElementById('duplicates-list-container');
+            
+            const activeWords = [];
+            for (let theme of Object.keys(parsedDatabase)) {
+                if (parsedDatabase[theme].words) {
+                    activeWords.push(...parsedDatabase[theme].words.map(i => ({...i, theme})));
+                }
+            }
+
+            if (activeWords.length < 2) {
+                container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4 font-sans h-full flex items-center justify-center">Add more cards to analyze duplicates</div>';
+                return;
+            }
+
+            const duplicatePairs = [];
+            const seenPairs = new Set();
+
+            for (let i = 0; i < activeWords.length; i++) {
+                for (let j = i + 1; j < activeWords.length; j++) {
+                    const card1 = activeWords[i];
+                    const card2 = activeWords[j];
+
+                    if (card1.id === card2.id || (card1.english.toLowerCase().trim() === card2.english.toLowerCase().trim() && card1.spanish.toLowerCase().trim() === card2.spanish.toLowerCase().trim())) {
+                        continue;
+                    }
+
+                    const simEnglish = getDiceSimilarity(card1.english, card2.english);
+                    const simSpanish = getDiceSimilarity(card1.spanish, card2.spanish);
+                    const maxSim = Math.max(simEnglish, simSpanish);
+
+                    if (maxSim >= 0.65) {
+                        const pairId = [card1.id, card2.id].sort().join('-');
+                        if (!seenPairs.has(pairId)) {
+                            seenPairs.add(pairId);
+                            duplicatePairs.push({
+                                card1,
+                                card2,
+                                similarity: maxSim
+                            });
+                        }
+                    }
+                }
+            }
+
+            const filteredDuplicatePairs = duplicatePairs.filter(pair => {
+                const pairKey = [pair.card1.english + '/' + pair.card1.spanish, pair.card2.english + '/' + pair.card2.spanish].sort().join('||');
+                return !dismissedDuplicates.has(pairKey);
+            });
+
+            if (filteredDuplicatePairs.length === 0) {
+                container.innerHTML = '<div class="text-xs text-emerald-400 text-center py-4 flex flex-col gap-1 font-sans h-full items-center justify-center"><i data-lucide="check-circle" class="w-6 h-6 mx-auto text-emerald-500"></i> Clean! No duplicates found.</div>';
+                lucide.createIcons();
+                return;
+            }
+
+            filteredDuplicatePairs.sort((a, b) => b.similarity - a.similarity);
+            const topFivePairs = filteredDuplicatePairs.slice(0, 5);
+
+            container.innerHTML = ''; 
+            topFivePairs.forEach(pair => {
+                const pairKey = [pair.card1.english + '/' + pair.card1.spanish, pair.card2.english + '/' + pair.card2.spanish].sort().join('||');
+                
+                const box = document.createElement('div');
+                box.className = "relative bg-slate-900 border border-slate-750 hover:border-indigo-500 rounded-xl overflow-hidden transition flex flex-col text-xs font-mono shadow group my-1.5 shrink-0";
+                
+                box.innerHTML = `
+                    <button onclick="dismissDuplicatePair('${pairKey.replace(/'/g, "\\'")}', event)" class="absolute top-1.5 right-1.5 p-1 bg-slate-800/90 hover:bg-rose-900/85 text-slate-400 hover:text-white rounded transition z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150" title="Dismiss duplicate pair">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                    
+                    <div class="p-3.5 pr-8 hover:bg-slate-800 cursor-pointer text-left transition duration-150 truncate" onclick="scrollToCardInText('${pair.card1.english.replace(/'/g, "\\'")}', '${pair.card1.spanish.replace(/'/g, "\\'")}')">
+                        <div class="text-slate-500 text-[9px] font-sans font-semibold uppercase mb-0.5 truncate">${pair.card1.theme}</div>
+                        <div class="text-slate-200 font-medium truncate">${pair.card1.english} <span class="text-slate-500">/</span> ${pair.card1.spanish}</div>
+                    </div>
+                    <hr class="border-slate-800">
+                    <div class="p-3.5 pr-8 hover:bg-slate-800 cursor-pointer text-left transition duration-150 truncate" onclick="scrollToCardInText('${pair.card2.english.replace(/'/g, "\\'")}', '${pair.card2.spanish.replace(/'/g, "\\'")}')">
+                        <div class="text-slate-500 text-[9px] font-sans font-semibold uppercase mb-0.5 truncate">${pair.card2.theme}</div>
+                        <div class="text-slate-200 font-medium truncate">${pair.card2.english} <span class="text-slate-500">/</span> ${pair.card2.spanish}</div>
+                    </div>
+                `;
+                container.appendChild(box);
+            });
+            lucide.createIcons();
+        }
+
+        function dismissDuplicatePair(pairKey, event) {
+            if (event) event.stopPropagation();
+            dismissedDuplicates.add(pairKey);
+            localStorage.setItem('dismissed_duplicates', JSON.stringify(Array.from(dismissedDuplicates)));
+            analyzeNearDuplicates(); 
+            showToast("Duplicate pair hidden.");
+        }
+
+        function resetDismissedDuplicates() {
+            dismissedDuplicates.clear();
+            localStorage.removeItem('dismissed_duplicates');
+            analyzeNearDuplicates();
+            showToast("Cleared duplicate dismiss history!");
+        }
+
+        function updateStudySessionListFromDatabase() {
+            if (!unfilteredStudySessionList || unfilteredStudySessionList.length === 0) return;
+            
+            // Map the latest parameters back to our unfiltered session array cleanly
+            unfilteredStudySessionList = unfilteredStudySessionList.map(item => {
+                const dbMatch = findItemInDatabase(item.english, item.spanish, item.themeName) || findItemInDatabaseById(item.id);
+                if (dbMatch) {
+                    const matchItem = dbMatch.item || dbMatch;
+                    return {
+                        ...matchItem,
+                        themeName: dbMatch.themeName || item.themeName,
+                        id: matchItem.id || item.id
+                    };
+                }
+                return item; 
+            });
+
+            if (typeof customSelectedStatsItems !== 'undefined' && customSelectedStatsItems.length > 0) {
+                customSelectedStatsItems = customSelectedStatsItems.map(item => {
+                    const dbMatch = findItemInDatabase(item.english, item.spanish, item.themeName) || findItemInDatabaseById(item.id);
+                    if (dbMatch) {
+                        const matchItem = dbMatch.item || dbMatch;
+                        return {
+                            ...matchItem,
+                            themeName: dbMatch.themeName || item.themeName,
+                            id: matchItem.id || item.id
+                        };
+                    }
+                    return item;
+                });
+            }
+
+            applyFiltersToSession(false);
+        }
+
+        function syncStudySessionWithDatabase() {
+            unfilteredStudySessionList = unfilteredStudySessionList.map(item => {
+                let match = findItemInDatabaseById(item.id);
+                if (match) {
+                    return { ...match, themeName: item.themeName };
+                }
+                match = findItemInDatabase(item.english, item.spanish, item.themeName);
+                if (match) {
+                    return { ...match.item, id: match.item.id, themeName: match.themeName };
+                }
+                return item;
+            });
+
+            applyFiltersToSession(false);
+            dbDirty = false;
+        }
+    </script>
+</body>
+</html>
